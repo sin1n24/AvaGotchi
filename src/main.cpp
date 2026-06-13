@@ -3,6 +3,8 @@
 //   ボタンA: ごはん  ボタンB: ミニゲーム  ボタンC: ステータス  C長押し: 天気更新
 #include <M5Unified.h>
 #include <Avatar.h>
+#include <time.h>
+#include <sys/time.h>
 #include "config.h"
 #include "pet.h"
 #include "streetpass.h"
@@ -18,8 +20,45 @@ WeatherInfo weather;
 uint32_t lastDecayMs = 0;
 uint32_t speechUntilMs = 0;   // この時刻まで吹き出しを表示
 uint32_t dizzyUntilMs = 0;    // 目が回っている間
-uint32_t lastShakeMs = 0;
 String speechBuf;             // setSpeechTextへ渡す文字列の保持用
+
+// --- IMUインタラクションの状態 ---
+uint32_t lastShakeMs = 0;     // 直近に「目が回る」を検知した時刻
+uint32_t lastTapMs = 0;       // 直近に「くすぐったい」を検知した時刻
+int spinCount = 0;            // 連続して回転している(ジャイロ大)フレーム数
+uint32_t upsideStartMs = 0;   // 上下逆さが始まった時刻（0=正常）
+bool upsideNotified = false;  // 逆さに気付いてコメント済みか
+bool isUpsideDown = false;    // 現在逆さか（表情に反映）
+
+// --- その他のインタラクション状態 ---
+uint32_t grumpyUntilMs = 0;   // 「もう食べれない」不満顔の継続時刻
+int fullPressCount = 0;       // 満腹状態でAを押した連続回数
+int lastChimeHour = -1;       // 時報を鳴らした最後の「時」
+
+// ジャイロ(角速度 deg/s)で回転を、加速度スパイクでタップを検出する
+constexpr float GYRO_SPIN   = 150.0f;  // これ以上の角速度を「回転」とみなす
+constexpr int   SPIN_FRAMES = 5;       // 連続で回り続けたら目が回る(約100ms)
+constexpr float GYRO_QUIET  = 80.0f;   // これ未満なら「回っていない」
+constexpr float TAP_MOTION  = 0.4f;    // 加速度スパイクをタップとみなすしきい値
+
+// ---- 時刻が同期済みか（NTP後 or 物理RTCから復元済み） ----
+bool clockReady() {
+  struct tm t;
+  if (!getLocalTime(&t, 10)) return false;
+  return (t.tm_year + 1900) >= 2024;
+}
+
+// ---- 時間帯に応じた起動あいさつ ----
+String greetingByTime() {
+  struct tm t;
+  if (!getLocalTime(&t, 10)) return "やっほー!";  // 時刻未同期（Cながおしで天気＝時刻あわせ）
+  int h = t.tm_hour;
+  if (h < 5)  return "こんな よふかし めっ!";
+  if (h < 10) return "おはよう!";
+  if (h < 17) return "こんにちは!";
+  if (h < 22) return "こんばんは!";
+  return "もう ねるじかんだよ";
+}
 
 // ---- 吹き出しを一定時間表示 ----
 void say(const String &text, uint32_t ms = 3000) {
@@ -49,7 +88,15 @@ void applyWeatherPalette() {
 // ---- ステータスに応じた表情 ----
 void updateExpression() {
   if (millis() < dizzyUntilMs) {
-    avatar.setExpression(Expression::Angry);  // 振り回されてプンプン
+    avatar.setExpression(Expression::Angry);  // 振り回されて目が回る
+    return;
+  }
+  if (millis() < grumpyUntilMs) {
+    avatar.setExpression(Expression::Angry);  // もう食べられない…ぷんぷん
+    return;
+  }
+  if (isUpsideDown) {
+    avatar.setExpression(Expression::Doubt);  // 逆さにされてびっくり
     return;
   }
   if (pet.st.sleeping) {
@@ -58,8 +105,8 @@ void updateExpression() {
   }
   if (pet.st.satiety < 30) {
     avatar.setExpression(Expression::Sad);    // おなかぺこぺこ
-  } else if (pet.st.happiness >= 70) {
-    avatar.setExpression(Expression::Happy);
+  } else if (pet.st.happiness >= 70 || pet.st.satiety >= 90) {
+    avatar.setExpression(Expression::Happy);  // ごきげん or 満腹で笑顔
   } else if (pet.st.happiness < 30) {
     avatar.setExpression(Expression::Doubt);  // かまってほしい
   } else {
@@ -71,29 +118,43 @@ void updateExpression() {
 void showStatus() {
   avatar.suspend();
   auto &lcd = M5.Display;
+  const int W = lcd.width();
   lcd.fillScreen(TFT_BLACK);
-  lcd.setFont(&fonts::efontJA_16);
+  lcd.setFont(&fonts::efontJA_12);
   lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-  lcd.setTextDatum(top_left);
-  int y = 12;
+  int y = 16;
+  const int rowH = 24;
+  const int barX = 94;                   // ラベル文字と重ならないようゲージを右へ
+  const int barW = W - barX - 12;         // 画面幅に合わせてゲージ幅を自動調整
   auto bar = [&](const char *label, int v, uint16_t color) {
-    lcd.drawString(label, 12, y);
-    lcd.drawRect(100, y, 204, 14, TFT_DARKGREY);
-    lcd.fillRect(102, y + 2, v * 2, 10, color);
-    y += 28;
+    lcd.setTextDatum(middle_left);        // 文字をバーの高さの中央に合わせる
+    lcd.drawString(label, 10, y + 7);
+    lcd.drawRect(barX, y, barW, 14, TFT_DARKGREY);
+    lcd.fillRect(barX + 2, y + 2, (barW - 4) * v / 100, 10, color);
+    y += rowH;
   };
   bar("まんぷく", pet.st.satiety, TFT_ORANGE);
   bar("ごきげん", pet.st.happiness, TFT_PINK);
   bar("げんき",   pet.st.energy, TFT_GREEN);
-  lcd.drawString("ともだち: " + String(pet.st.friends) + "ひき", 12, y); y += 24;
-  lcd.drawString("たまご  : " + String(pet.st.eggs) + "こ", 12, y);     y += 24;
-  lcd.drawString("ねんれい: " + String(pet.st.ageMin) + "ふん", 12, y); y += 24;
+
+  y += 6;
+  lcd.setTextDatum(top_left);
+  lcd.drawString("ともだち: " + String(pet.st.friends) + "ひき", 10, y); y += 20;
+  lcd.drawString("たまご  : " + String(pet.st.eggs) + "こ", 10, y);     y += 20;
+  lcd.drawString("ねんれい: " + String(pet.st.ageMin) + "ふん", 10, y); y += 20;
   if (weather.valid) {
     lcd.drawString("てんき  : " + String(Weather::kindLabel(weather.kind)) +
                        " " + String(weather.temperature, 1) + "C",
-                   12, y);
+                   10, y);
   } else {
-    lcd.drawString("てんき  : Cながおしで しゅとく", 12, y);
+    lcd.drawString("てんき  : Cながおしで", 10, y);
+  }
+  struct tm tnow;
+  if (getLocalTime(&tnow, 10)) {           // 時刻が同期済みなら現在時刻も表示
+    y += 20;
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%02d:%02d", tnow.tm_hour, tnow.tm_min);
+    lcd.drawString(String("じこく  : ") + buf, 10, y);
   }
   delay(4000);
   avatar.resume();
@@ -106,6 +167,15 @@ void fetchWeather() {
   bool ok = Weather::fetch(weather);
   StreetPass::begin();
   StreetPass::setMyInfo(pet.st.eggs);
+
+  // 時刻が同期できていれば物理RTCにも保存（次回起動で復元。Gray非搭載機はスキップ）
+  if (M5.Rtc.isEnabled() && clockReady()) {
+    struct tm t;
+    getLocalTime(&t, 10);
+    M5.Rtc.setDateTime({{(int16_t)(t.tm_year + 1900), (int8_t)(t.tm_mon + 1), (int8_t)t.tm_mday, (int8_t)t.tm_wday},
+                        {(int8_t)t.tm_hour, (int8_t)t.tm_min, (int8_t)t.tm_sec}});
+  }
+
   if (ok) {
     applyWeatherPalette();
     say(String(Weather::kindLabel(weather.kind)) + "だよ! " +
@@ -130,12 +200,33 @@ void setup() {
   cfg.internal_imu = true;
   M5.begin(cfg);
 
+  // タイムゾーンを日本時間に固定（mktime/localtimeが一貫してJSTになる）
+  setenv("TZ", "JST-9", 1);
+  tzset();
+
+  // 物理RTCがあれば前回保存した時刻をシステム時刻へ復元（Gray非搭載機はスキップ）
+  if (M5.Rtc.isEnabled()) {
+    auto dt = M5.Rtc.getDateTime();
+    if (dt.date.year >= 2024) {
+      struct tm tmv = {};
+      tmv.tm_year = dt.date.year - 1900;
+      tmv.tm_mon  = dt.date.month - 1;
+      tmv.tm_mday = dt.date.date;
+      tmv.tm_hour = dt.time.hours;
+      tmv.tm_min  = dt.time.minutes;
+      tmv.tm_sec  = dt.time.seconds;
+      time_t tt = mktime(&tmv);
+      struct timeval tv = {tt, 0};
+      settimeofday(&tv, nullptr);
+    }
+  }
+
   pet.load();
 
   avatar.init();
   avatar.setSpeechFont(&fonts::efontJA_16);
   applyWeatherPalette();
-  say("おはよう!");
+  say(greetingByTime());  // 時間帯に応じたあいさつ
 
   StreetPass::begin();
   StreetPass::setMyInfo(pet.st.eggs);
@@ -152,18 +243,25 @@ void loop() {
       pet.st.sleeping = false;          // 起こしてしまった
       say("ふぁ… おきたよ");
     } else if (pet.st.satiety >= 100) {
-      say("おなか いっぱい");
+      // 満腹なのに何度もあげると不満になる
+      if (++fullPressCount >= 2) {
+        say("もう たべれないよ！");
+        grumpyUntilMs = now + 3000;
+      } else {
+        say("おなか いっぱい");
+      }
     } else {
       pet.feed();
       say("もぐもぐ おいしい!");
+      fullPressCount = 0;
     }
   }
-  if (M5.BtnB.wasPressed() && !pet.st.sleeping) {  // ミニゲーム
-    avatar.suspend();
-    int score = MiniGame::playBallGame();
-    avatar.resume();
-    pet.play(score);
-    say(score >= 30 ? "たのしかった〜!!" : "もっと あそぼ?");
+  if (M5.BtnB.wasClicked() && !pet.st.sleeping) {  // ミニゲーム選択
+    int up = MiniGame::selectAndPlay();
+    if (up >= 0) {
+      pet.play(up);
+      say(up >= 25 ? "たのしかった〜!!" : up >= 10 ? "また あそぼ!" : "うーん…ざんねん");
+    }
   }
   if (M5.BtnC.wasHold()) {              // 天気更新
     fetchWeather();
@@ -171,23 +269,62 @@ void loop() {
     showStatus();
   }
 
-  // --- IMU: 振る・傾けるインタラクション ---
-  float ax, ay, az;
-  if (M5.Imu.getAccel(&ax, &ay, &az)) {
-    float mag = sqrtf(ax * ax + ay * ay + az * az);
-    if (mag > 2.2f && now - lastShakeMs > 1500) {  // 強く振られた
-      lastShakeMs = now;
+  // --- IMU: 回転(目が回る) / タップ(くすぐったい) / 傾き / 上下逆さ ---
+  float ax, ay, az, gx, gy, gz;
+  bool haveAccel = M5.Imu.getAccel(&ax, &ay, &az);
+  bool haveGyro  = M5.Imu.getGyro(&gx, &gy, &gz);
+  if (haveAccel) {
+    float motion = fabsf(sqrtf(ax * ax + ay * ay + az * az) - 1.0f);  // 重力を除いた動き
+    float gyroMag = haveGyro ? sqrtf(gx * gx + gy * gy + gz * gz) : 0;  // 角速度 deg/s
+
+    // 回転が連続したら目が回る
+    if (gyroMag > GYRO_SPIN) {
+      spinCount++;
+      if (spinCount == SPIN_FRAMES && now - lastShakeMs > 1500) {
+        lastShakeMs = now;
+        if (pet.st.sleeping) {
+          pet.st.sleeping = false;
+          say("びっくりした!");
+        } else {
+          pet.shaken();
+          dizzyUntilMs = now + 2500;
+          say("めが まわる〜");
+        }
+      }
+    } else {
+      spinCount = 0;
+    }
+
+    // タップ：加速度スパイクがあり、かつ回転していない（つつかれた）
+    if (motion > TAP_MOTION && gyroMag < GYRO_QUIET && now - lastTapMs > 500) {
+      lastTapMs = now;
       if (pet.st.sleeping) {
-        pet.st.sleeping = false;
-        say("びっくりした!");
+        say("う〜ん…");  // そっと触られた程度では起きない
       } else {
-        pet.shaken();
-        dizzyUntilMs = now + 2500;
-        say("めが まわる〜");
+        pet.st.happiness = (pet.st.happiness < 100) ? pet.st.happiness + 1 : 100;
+        say("くすぐったい!", 1500);
       }
     }
-    // ゆるい傾きで顔も一緒に傾く
-    if (now >= dizzyUntilMs) {
+
+    // --- 上下逆さ検知（頭が下） ---
+    // 通常姿勢で重力は概ね +Z(平置き) か +Y(立て持ち)。逆さでこれらが負に振れる。
+    // ★実機の持ち方で軸の出方が変わるので、必要なら下のしきい値/軸を調整。
+    bool upsideNow = (az < -0.5f) || (ay < -0.7f);
+    if (upsideNow) {
+      if (upsideStartMs == 0) upsideStartMs = now;
+      else if (!upsideNotified && now - upsideStartMs > 700) {  // 0.7秒続いたら気付く
+        upsideNotified = true;
+        isUpsideDown = true;
+        say("わわっ さかさまだよ!");
+      }
+    } else {
+      upsideStartMs = 0;
+      upsideNotified = false;
+      isUpsideDown = false;
+    }
+
+    // ゆるい傾きで顔も一緒に傾く（目が回る・逆さの間は固定）
+    if (now >= dizzyUntilMs && !isUpsideDown) {
       float tilt = constrain(ax, -0.5f, 0.5f) * 20.0f;  // 最大±10度
       avatar.setRotation(tilt);
     }
@@ -199,6 +336,17 @@ void loop() {
   if (StreetPass::popNewFriend(fi)) {
     pet.meetFriend();
     say(String(fi.name) + "に あったよ!", 5000);
+  }
+
+  // --- 毎正時の時報（時刻が同期済みのときだけ） ---
+  {
+    struct tm tnow;
+    if (getLocalTime(&tnow, 0) && (tnow.tm_year + 1900) >= 2024) {
+      if (tnow.tm_min == 0 && tnow.tm_hour != lastChimeHour) {
+        lastChimeHour = tnow.tm_hour;
+        say(String(tnow.tm_hour) + "じだよ！ ポーン", 4000);
+      }
+    }
   }
 
   // --- 時間経過 ---

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AvaGotchi インストーラー</title>
+  <meta name="description" content="M5Stack Gray 用たまごっち風ゲーム AvaGotchi を、ブラウザから直接書き込めます。" />
+  <style>
+    :root {
+      --bg: #0f1226;
+      --card: #1b1f3b;
+      --accent: #6cc6ff;
+      --accent2: #ff8ad1;
+      --text: #eef1ff;
+      --muted: #aab2d5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: radial-gradient(1200px 600px at 70% -10%, #2a2f63 0%, var(--bg) 55%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px 64px;
+    }
+    .wrap { width: 100%; max-width: 720px; }
+    header { text-align: center; margin-bottom: 28px; }
+    h1 {
+      font-size: 2.4rem;
+      margin: 0 0 6px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .tagline { color: var(--muted); margin: 0; }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+    }
+    .install-row { text-align: center; padding: 8px 0 4px; }
+    esp-web-install-button { --esp-tools-button-color: #0f1226; }
+    esp-web-install-button::part(button) {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #0f1226;
+      font-weight: 700;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+    .unsupported {
+      background: #3a1422;
+      border: 1px solid #ff6b8b;
+      color: #ffd5df;
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+    h2 { font-size: 1.2rem; margin: 0 0 12px; color: var(--accent); }
+    ol, ul { margin: 0; padding-left: 1.3em; line-height: 1.9; }
+    li b { color: #fff; }
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+    .controls div { background: rgba(255,255,255,.04); border-radius: 10px; padding: 10px 14px; }
+    .key { display:inline-block; min-width: 2.2em; text-align:center; font-weight:700; color: var(--accent2); }
+    .note { color: var(--muted); font-size: .9rem; line-height: 1.7; }
+    a { color: var(--accent); }
+    code { background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 5px; }
+    @media (max-width: 520px) { .controls { grid-template-columns: 1fr; } h1 { font-size: 2rem; } }
+  </style>
+  <!-- esp-web-tools（内部で esptool-js を使用）。Web Serial 対応の Chrome / Edge が必要 -->
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>AvaGotchi</h1>
+      <p class="tagline">M5Stack Gray で動く、たまごっち風ペット育成ゲーム</p>
+    </header>
+
+    <div class="card">
+      <h2>① 書き込む</h2>
+      <p>M5Stack Gray を USB でつないで、下のボタンを押すだけ。アプリのインストールは不要です。</p>
+      <div class="install-row">
+        <esp-web-install-button manifest="manifest.json">
+          <button slot="activate">M5Stack Gray に書き込む</button>
+          <span slot="unsupported" class="unsupported">
+            このブラウザは Web Serial に対応していません。<br />
+            <b>パソコンの Chrome または Edge</b> で開いてください（スマホ・Safari・Firefox は非対応）。
+          </span>
+          <span slot="not-allowed" class="unsupported">
+            シリアルポートへのアクセスが許可されませんでした。もう一度お試しください。
+          </span>
+        </esp-web-install-button>
+      </div>
+      <p class="note" style="margin-top:18px;">
+        ボタンを押すとシリアルポート選択画面が出ます。<b>「CP210x …（COMxx）」</b>を選んで
+        <b>Connect → Install</b> と進めてください。書き込みには1〜2分かかります。
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>② 遊び方（操作）</h2>
+      <div class="controls">
+        <div><span class="key">A</span> ごはんをあげる</div>
+        <div><span class="key">B</span> ミニゲーム（5種から選択）</div>
+        <div><span class="key">C</span> 短押し：ステータス画面</div>
+        <div><span class="key">C</span> 長押し：天気取得＋時刻合わせ</div>
+        <div>🔄 くるくる回す → 目が回る</div>
+        <div>👆 トンとつつく → くすぐったい</div>
+        <div>🙃 逆さにする → びっくり</div>
+        <div>😴 ほうっておく → おやすみ</div>
+      </div>
+      <p class="note" style="margin-top:16px;">
+        ミニゲームはすべて <b>B ボタンだけ</b>で遊べます（5びょうあて／反射神経／連打／ラッキー7／がまんくらべ）。
+        ごきげんと満腹を高く保つと、たまごを産んで次の世代が生まれます。
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>③ うまくいかないとき</h2>
+      <ul class="note">
+        <li>ボタンが灰色のまま → スマホや非対応ブラウザです。PCの Chrome / Edge で開いてください。</li>
+        <li>ポート一覧に出てこない → <b>CP210x USB ドライバ</b>（Silicon Labs）が必要な場合があります。</li>
+        <li>書き込みが始まらない → 一度 USB を挿し直し、本体側面のリセット後に再度お試しください。</li>
+        <li>天気・時刻機能は WiFi 設定が必要です（配布版は未設定。ソースの <code>secrets.h</code> 参照）。</li>
+      </ul>
+    </div>
+
+    <p class="note" style="text-align:center;">
+      ソースコード・詳細：<a href="https://github.com/sin1n24/AvaGotchi">github.com/sin1n24/AvaGotchi</a><br />
+      © 2026 sin1 — MIT License
+    </p>
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <time.h>
 #include "config.h"
 
 namespace {
@@ -79,6 +80,13 @@ bool fetch(WeatherInfo &out) {
     }
   }
   http.end();
+
+  // WiFi接続中に時刻合わせ（NTP）。JST(UTC+9)。
+  // 成否はmain側で getLocalTime() を読んで判定する（システム時刻が入る）。
+  configTime(9 * 3600, 0, "ntp.nict.jp", "time.google.com", "pool.ntp.org");
+  struct tm tmInfo;
+  getLocalTime(&tmInfo, 5000);  // 最大5秒待つ
+
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
   return out.valid;
