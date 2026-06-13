@@ -77,3 +77,18 @@ python <esptoolpy>/esptool.py --chip esp32 merge_bin \
 - ESP-NOWとWiFi(STA)は同時利用しないよう、天気取得時は一旦ESP-NOWを停止→取得後に再開しています
 - 天気APIはキー不要の Open-Meteo を使用（HTTP）。時刻は NTP（ntp.nict.jp 他）で JST に同期
 - M5Stack Gray は物理RTC非搭載のため、時間帯あいさつ・時報は「天気取得で時刻同期した後」のセッションで有効（電源OFFでリセット）
+
+## スタックチャンについて / クレジット
+
+AvaGotchi のキャラクター表示には、ししかわ氏（[@meganetaaan](https://github.com/meganetaaan)）が作成した **[M5Stack-Avatar](https://github.com/meganetaaan/m5stack-avatar)** を使用しています。これは、M5Stack をベースにした自作コミュニケーションロボット **スタックチャン（ｽﾀｯｸﾁｬﾝ / stack-chan）** の「顔」を描画するためのライブラリです。
+
+**スタックチャン** は、ししかわ氏とコミュニティによって開発されている、M5Stack ベースのオープンソースな自作ロボットです。手のひらサイズのかわいい見た目と、ゆたかな表情・しぐさが特徴で、世界中に多くのファンと派生作品・コミュニティを生んでいます。AvaGotchi の「表情で気持ちを伝える」体験は、このスタックチャン文化に大きく影響を受けています。
+
+- 本家リポジトリ: <https://github.com/meganetaaan/stack-chan>
+- 作者: ししかわ（Shunya Ishikawa）
+- ライセンス: Apache License 2.0
+- 公式ハッシュタグ: `#stackchan` `#ｽﾀｯｸﾁｬﾝ`
+
+> **注記**: AvaGotchi は M5Stack-Avatar を利用した独自プロジェクトであり、公式リポジトリ管理下のデータのみで構成された「スタックチャン」そのものではありません。[スタックチャン二次創作ガイドライン](https://github.com/meganetaaan/stack-chan/blob/main/GUIDELINE_ja.md)では『スタックチャン』を「本リポジトリ管理下のデータのみを使って作られたロボット」と定義しているため、本プロジェクトはスタックチャンを名乗らず、リスペクトを込めて**関連プロジェクト**として紹介・クレジットします。
+
+スタックチャン本家やコミュニティの作品にも、ぜひ触れてみてください 🤖
