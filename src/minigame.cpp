@@ -18,8 +18,7 @@ void clearSpeech() {
   avatar.setSpeechText("");
 }
 
-// timeoutMs の間にBがクリックされたら true（経過msをelapsedで返す）。
-// Avatarは裏で描画を続けるので、ここではM5.update()だけ回す。
+// timeoutMs の間にBがクリックされたら true（経過msをelapsedで返す）
 bool waitClick(uint32_t timeoutMs, uint32_t *elapsed = nullptr) {
   uint32_t t0 = millis();
   while (millis() - t0 < timeoutMs) {
@@ -42,7 +41,7 @@ void waitButtonRelease() {
   } while (M5.BtnB.isPressed());
 }
 
-// ===== 各ゲーム（戻り値＝ごきげん上昇量 0〜30） =====
+// ===== 会話型ゲーム（Bボタンのみ・戻り値＝ごきげん上昇量 0〜30） =====
 
 // 1. 5びょうあて：合図から5秒ぴったりでBを押す
 int gameTiming() {
@@ -172,10 +171,131 @@ int gameStare() {
   return sec >= 10 ? 30 : sec >= 6 ? 22 : sec >= 3 ? 14 : 8;
 }
 
-const char *MENU[5] = {"5びょう あて", "はんしゃ しんけい", "れんだ", "ラッキー7", "がまんくらべ"};
+// ===== 6. かたむけて エサとり（IMU傾け操作。Gray等のみ） =====
 
-// ゲーム選択画面（Avatarを止めてリスト表示）。B短押しで送り、B長押しで決定。
-int selectMenu() {
+// ペットの顔（ボール）。0:ふつう 1:うれしい(エサ) 2:ぶつかった(壁)
+enum Mood { MOOD_NORMAL, MOOD_HAPPY, MOOD_BONK };
+void drawPet(M5GFX &lcd, int x, int y, int r, int mood) {
+  lcd.fillCircle(x, y, r, TFT_CYAN);
+  const int ex = r / 2, ey = r / 4;
+  if (mood == MOOD_HAPPY) {  // ^ ^ のにっこり＋口
+    lcd.drawLine(x - ex - 2, y - ey + 2, x - ex, y - ey - 2, TFT_BLACK);
+    lcd.drawLine(x - ex, y - ey - 2, x - ex + 2, y - ey + 2, TFT_BLACK);
+    lcd.drawLine(x + ex - 2, y - ey + 2, x + ex, y - ey - 2, TFT_BLACK);
+    lcd.drawLine(x + ex, y - ey - 2, x + ex + 2, y - ey + 2, TFT_BLACK);
+    lcd.drawLine(x - 3, y + ey + 1, x + 3, y + ey + 1, TFT_BLACK);
+  } else if (mood == MOOD_BONK) {  // × × の目を回した顔
+    lcd.drawLine(x - ex - 2, y - ey - 2, x - ex + 2, y - ey + 2, TFT_BLACK);
+    lcd.drawLine(x - ex + 2, y - ey - 2, x - ex - 2, y - ey + 2, TFT_BLACK);
+    lcd.drawLine(x + ex - 2, y - ey - 2, x + ex + 2, y - ey + 2, TFT_BLACK);
+    lcd.drawLine(x + ex + 2, y - ey - 2, x + ex - 2, y - ey + 2, TFT_BLACK);
+  } else {  // ・ ・ のふつうの目
+    lcd.fillCircle(x - ex, y - ey, 2, TFT_BLACK);
+    lcd.fillCircle(x + ex, y - ey, 2, TFT_BLACK);
+  }
+}
+
+// 本体を傾けてペットを転がし、制限時間内にいくつエサ(的)に到達できるかを競う。
+// スプライトは使わず差分描画（Avatarは呼び出し側でsuspend済みの前提）。
+int gameBall() {
+  auto &lcd = M5.Display;
+  const int W = lcd.width(), H = lcd.height();
+  const uint32_t kTimeLimitMs = 20000;
+  const int kStatusH = 20;
+  float bx = W / 2.0f, by = H / 2.0f, vx = 0, vy = 0;
+  const float kBallR = 11, kTargetR = 14;
+  int score = 0;
+  uint32_t happyUntil = 0, bonkUntil = 0;
+
+  randomSeed(millis());
+  float tx = random(20, W - 20), ty = random(kStatusH + 20, H - 20);
+
+  // カウントダウン
+  lcd.fillScreen(TFT_BLACK);
+  lcd.setFont(&fonts::efontJA_24);
+  lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  lcd.setTextDatum(middle_center);
+  drawPet(lcd, W / 2, H / 2 - 50, 22, MOOD_HAPPY);
+  lcd.drawString("かたむけて エサへ！", W / 2, H / 2);
+  for (int i = 3; i > 0; i--) {
+    lcd.fillRect(W / 2 - 20, H / 2 + 28, 40, 34, TFT_BLACK);
+    lcd.drawString(String(i), W / 2, H / 2 + 44);
+    delay(800);
+  }
+
+  lcd.fillScreen(TFT_BLACK);
+  const uint32_t start = millis();
+  float pbx = bx, pby = by, ptx = tx, pty = ty;
+  int pscore = -1;
+  uint32_t premain = 0xffffffff;
+
+  while (millis() - start < kTimeLimitMs) {
+    M5.update();
+    const uint32_t now = millis();
+    float ax, ay, az;
+    M5.Imu.getAccel(&ax, &ay, &az);
+
+    vx += -ax * 1.8f;
+    vy += ay * 1.8f;
+    vx *= 0.95f;
+    vy *= 0.95f;
+    bx += vx;
+    by += vy;
+
+    bool bonk = false;
+    if (bx < kBallR)            { bx = kBallR;            vx = -vx * 0.6f; bonk |= fabsf(vx) > 2; }
+    if (bx > W - kBallR)        { bx = W - kBallR;        vx = -vx * 0.6f; bonk |= fabsf(vx) > 2; }
+    if (by < kStatusH + kBallR) { by = kStatusH + kBallR; vy = -vy * 0.6f; bonk |= fabsf(vy) > 2; }
+    if (by > H - kBallR)        { by = H - kBallR;        vy = -vy * 0.6f; bonk |= fabsf(vy) > 2; }
+    if (bonk) bonkUntil = now + 250;
+
+    float dx = bx - tx, dy = by - ty;
+    if (dx * dx + dy * dy < (kBallR + kTargetR) * (kBallR + kTargetR)) {
+      score++;
+      happyUntil = now + 350;
+      tx = random(20, W - 20);
+      ty = random(kStatusH + 20, H - 20);
+    }
+
+    int mood = (now < happyUntil) ? MOOD_HAPPY : (now < bonkUntil ? MOOD_BONK : MOOD_NORMAL);
+
+    lcd.fillCircle(pbx, pby, kBallR, TFT_BLACK);
+    if (ptx != tx || pty != ty) lcd.fillCircle(ptx, pty, kTargetR, TFT_BLACK);
+    lcd.fillCircle(tx, ty, kTargetR, TFT_RED);
+    lcd.fillCircle(tx, ty, kTargetR - 6, TFT_YELLOW);
+    drawPet(lcd, bx, by, kBallR, mood);
+
+    uint32_t remain = (kTimeLimitMs - (now - start)) / 1000;
+    if (score != pscore || remain != premain) {
+      lcd.fillRect(0, 0, W, kStatusH, TFT_BLACK);
+      lcd.setFont(&fonts::efontJA_12);
+      lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+      lcd.setTextDatum(top_left);
+      lcd.drawString("のこり:" + String(remain) + "  たべた:" + String(score), 4, 4);
+      pscore = score;
+      premain = remain;
+    }
+
+    pbx = bx; pby = by; ptx = tx; pty = ty;
+    delay(16);
+  }
+
+  lcd.fillScreen(TFT_BLACK);
+  drawPet(lcd, W / 2, H / 2 - 34, 26, score > 5 ? MOOD_HAPPY : MOOD_NORMAL);
+  lcd.setFont(&fonts::efontJA_24);
+  lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  lcd.setTextDatum(middle_center);
+  lcd.drawString("たべた: " + String(score), W / 2, H / 2 + 16);
+  lcd.setFont(&fonts::efontJA_16);
+  lcd.drawString(score > 10 ? "おなか いっぱい!" : "また あそぼうね", W / 2, H / 2 + 48);
+  delay(2200);
+
+  return score > 10 ? 30 : score * 3;
+}
+
+// ===== 選択画面 =====
+// B短押しでカーソル移動、B長押しで決定（Avatarを止めてリスト表示）
+int selectMenu(const char **menu, int count) {
   avatar.suspend();
   auto &lcd = M5.Display;
   int idx = 0;
@@ -188,9 +308,9 @@ int selectMenu() {
     lcd.setFont(&fonts::efontJA_12);
     lcd.drawString("Bおす:つぎ  Bながおし:けってい", 8, 28);
     lcd.setFont(&fonts::efontJA_16);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < count; i++) {
       lcd.setTextColor(i == idx ? TFT_YELLOW : TFT_WHITE, TFT_BLACK);
-      lcd.drawString((i == idx ? "> " : "  ") + String(MENU[i]), 16, 52 + i * 30);
+      lcd.drawString((i == idx ? "> " : "  ") + String(menu[i]), 16, 50 + i * 28);
     }
   };
   draw();
@@ -199,19 +319,15 @@ int selectMenu() {
   while (true) {
     M5.update();
     if (M5.BtnB.wasHold()) {  // 長押しで決定
-      avatar.resume();
       waitButtonRelease();
       return idx;
     }
     if (M5.BtnB.wasClicked()) {  // 短押しで次へ
-      idx = (idx + 1) % 5;
+      idx = (idx + 1) % count;
       draw();
       idleStart = millis();
     }
-    if (millis() - idleStart > 15000) {  // 放置でキャンセル
-      avatar.resume();
-      return -1;
-    }
+    if (millis() - idleStart > 15000) return -1;  // 放置でキャンセル
     delay(20);
   }
 }
@@ -220,19 +336,32 @@ int selectMenu() {
 
 namespace MiniGame {
 
-int selectAndPlay() {
-  int sel = selectMenu();
+int selectAndPlay(bool imuAvailable) {
+  // IMUがある機種(Gray等)だけ傾け操作の「エサとり」を加える
+  const char *menu[6] = {"5びょう あて", "はんしゃ しんけい", "れんだ", "ラッキー7", "がまんくらべ"};
+  int count = 5;
+  if (imuAvailable) menu[count++] = "かたむけて エサとり";
+
+  int sel = selectMenu(menu, count);  // この中でavatar.suspend()
   if (sel < 0) {
+    avatar.resume();
     clearSpeech();
     return -1;
   }
+
   int up = 0;
-  switch (sel) {
-    case 0: up = gameTiming();   break;
-    case 1: up = gameReaction(); break;
-    case 2: up = gameMash();     break;
-    case 3: up = gameLucky7();   break;
-    case 4: up = gameStare();    break;
+  if (imuAvailable && sel == 5) {
+    up = gameBall();    // 傾けゲームはsuspendのままLCD直書き
+    avatar.resume();
+  } else {
+    avatar.resume();    // 会話ゲームはAvatarを使う
+    switch (sel) {
+      case 0: up = gameTiming();   break;
+      case 1: up = gameReaction(); break;
+      case 2: up = gameMash();     break;
+      case 3: up = gameLucky7();   break;
+      case 4: up = gameStare();    break;
+    }
   }
   clearSpeech();
   return up;

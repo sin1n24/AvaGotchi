@@ -16,6 +16,7 @@ using namespace m5avatar;
 Avatar avatar;
 Pet pet;
 WeatherInfo weather;
+bool hasImu = false;          // IMU搭載か（Gray=有, Basic無印=無）。起動時に自動判定
 
 uint32_t lastDecayMs = 0;
 uint32_t speechUntilMs = 0;   // この時刻まで吹き出しを表示
@@ -200,6 +201,8 @@ void setup() {
   cfg.internal_imu = true;
   M5.begin(cfg);
 
+  hasImu = M5.Imu.isEnabled();  // Gray等はtrue、IMU非搭載のBasic無印はfalse
+
   // タイムゾーンを日本時間に固定（mktime/localtimeが一貫してJSTになる）
   setenv("TZ", "JST-9", 1);
   tzset();
@@ -257,7 +260,7 @@ void loop() {
     }
   }
   if (M5.BtnB.wasClicked() && !pet.st.sleeping) {  // ミニゲーム選択
-    int up = MiniGame::selectAndPlay();
+    int up = MiniGame::selectAndPlay(hasImu);
     if (up >= 0) {
       pet.play(up);
       say(up >= 25 ? "たのしかった〜!!" : up >= 10 ? "また あそぼ!" : "うーん…ざんねん");
@@ -270,9 +273,10 @@ void loop() {
   }
 
   // --- IMU: 回転(目が回る) / タップ(くすぐったい) / 傾き / 上下逆さ ---
+  //     IMU搭載機(Gray等)のみ。Basic無印(IMU無し)では丸ごとスキップ。
   float ax, ay, az, gx, gy, gz;
-  bool haveAccel = M5.Imu.getAccel(&ax, &ay, &az);
-  bool haveGyro  = M5.Imu.getGyro(&gx, &gy, &gz);
+  bool haveAccel = hasImu && M5.Imu.getAccel(&ax, &ay, &az);
+  bool haveGyro  = hasImu && M5.Imu.getGyro(&gx, &gy, &gz);
   if (haveAccel) {
     float motion = fabsf(sqrtf(ax * ax + ay * ay + az * az) - 1.0f);  // 重力を除いた動き
     float gyroMag = haveGyro ? sqrtf(gx * gx + gy * gy + gz * gz) : 0;  // 角速度 deg/s

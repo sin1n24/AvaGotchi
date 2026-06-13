@@ -82,15 +82,15 @@
   <div class="wrap">
     <header>
       <h1>AvaGotchi</h1>
-      <p class="tagline">M5Stack Gray で動く、たまごっち風ペット育成ゲーム</p>
+      <p class="tagline">M5Stack Basic / Gray で動く、たまごっち風ペット育成ゲーム</p>
     </header>
 
     <div class="card">
       <h2>① 書き込む</h2>
-      <p>M5Stack Gray を USB でつないで、下のボタンを押すだけ。アプリのインストールは不要です。</p>
+      <p>M5Stack Basic / Gray を USB でつないで、下のボタンを押すだけ。アプリのインストールは不要です（機種は自動判定されます）。</p>
       <div class="install-row">
         <esp-web-install-button manifest="manifest.json">
-          <button slot="activate">M5Stack Gray に書き込む</button>
+          <button slot="activate">M5Stack Basic / Gray に書き込む</button>
           <span slot="unsupported" class="unsupported">
             このブラウザは Web Serial に対応していません。<br />
             <b>パソコンの Chrome または Edge</b> で開いてください（スマホ・Safari・Firefox は非対応）。
@@ -110,17 +110,19 @@
       <h2>② 遊び方（操作）</h2>
       <div class="controls">
         <div><span class="key">A</span> ごはんをあげる</div>
-        <div><span class="key">B</span> ミニゲーム（5種から選択）</div>
+        <div><span class="key">B</span> ミニゲーム選択</div>
         <div><span class="key">C</span> 短押し：ステータス画面</div>
         <div><span class="key">C</span> 長押し：天気取得＋時刻合わせ</div>
-        <div>🔄 くるくる回す → 目が回る</div>
-        <div>👆 トンとつつく → くすぐったい</div>
-        <div>🙃 逆さにする → びっくり</div>
+        <div>🔄 くるくる回す → 目が回る ※</div>
+        <div>👆 トンとつつく → くすぐったい ※</div>
+        <div>🙃 逆さにする → びっくり ※</div>
         <div>😴 ほうっておく → おやすみ</div>
       </div>
       <p class="note" style="margin-top:16px;">
-        ミニゲームはすべて <b>B ボタンだけ</b>で遊べます（5びょうあて／反射神経／連打／ラッキー7／がまんくらべ）。
-        ごきげんと満腹を高く保つと、たまごを産んで次の世代が生まれます。
+        ミニゲームは <b>B ボタンだけ</b>で遊べます（5びょうあて／反射神経／連打／ラッキー7／がまんくらべ）。
+        <b>IMU 搭載の Gray では「かたむけて エサとり」</b>も追加されます。
+        ごきげんと満腹を高く保つと、たまごを産んで次の世代が生まれます。<br />
+        <small>※ は IMU 搭載機（Gray）のみ。Basic 無印では動作しません。</small>
       </p>
     </div>
 
