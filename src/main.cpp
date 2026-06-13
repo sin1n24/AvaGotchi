@@ -18,6 +18,47 @@ Pet pet;
 WeatherInfo weather;
 bool hasImu = false;          // IMU搭載か（Gray=有, Basic無印=無）。起動時に自動判定
 
+// --- 個体差（チップ固有IDから決まる見た目・性格） ---
+uint16_t gHue = 200;          // 体色(色相 0-359)
+int gFavorite = 0;            // 好物index
+uint8_t baseRotation = 0;     // 通常の画面向き（逆さ表示からの復帰用）
+const char *PERSONALITY_NAMES[4] = {"くいしんぼう", "あまえんぼう", "げんきっこ", "おっとり"};
+const char *FAVORITES[5] = {"おさかな", "おにく", "くだもの", "おこめ", "おやつ"};
+
+// HSV(色相0-359)から RGB565 を作る
+uint16_t hsv565(uint16_t h, uint8_t s = 200, uint8_t v = 255) {
+  float hh = h / 60.0f; int i = (int)hh; float f = hh - i;
+  float vv = v / 255.0f, ss = s / 255.0f;
+  float p = vv * (1 - ss), q = vv * (1 - ss * f), t = vv * (1 - ss * (1 - f));
+  float r, g, b;
+  switch (i % 6) {
+    case 0: r = vv; g = t;  b = p;  break;
+    case 1: r = q;  g = vv; b = p;  break;
+    case 2: r = p;  g = vv; b = t;  break;
+    case 3: r = p;  g = q;  b = vv; break;
+    case 4: r = t;  g = p;  b = vv; break;
+    default: r = vv; g = p; b = q;  break;
+  }
+  return M5.Display.color565((uint8_t)(r * 255), (uint8_t)(g * 255), (uint8_t)(b * 255));
+}
+
+// 解除済みの最高称号（実績バッジ）
+const char *achievementTitle() {
+  if (pet.st.goldMedals >= 10)   return "ゲームマスター";
+  if (pet.st.battleWins >= 10)   return "バトルおうじゃ";
+  if (pet.st.eggs >= 10)         return "でんせつの おやどり";
+  if (pet.st.friends >= 20)      return "にんきもの";
+  if (pet.st.totalFeeds >= 100)  return "たべるの だいすき";
+  if (pet.st.eggs >= 3)          return "いっかの たいちょう";
+  if (pet.st.friends >= 5)       return "ともだち おおい";
+  return "みならい";
+}
+
+// すれちがい用に、自分の最新情報をブロードキャストデータへ反映
+void updateMyInfo() {
+  StreetPass::setMyInfo(PET_NAME, pet.st.eggs, pet.power(), (uint8_t)pet.personality, gHue);
+}
+
 uint32_t lastDecayMs = 0;
 uint32_t speechUntilMs = 0;   // この時刻まで吹き出しを表示
 uint32_t dizzyUntilMs = 0;    // 目が回っている間
@@ -37,10 +78,10 @@ int fullPressCount = 0;       // 満腹状態でAを押した連続回数
 int lastChimeHour = -1;       // 時報を鳴らした最後の「時」
 
 // ジャイロ(角速度 deg/s)で回転を、加速度スパイクでタップを検出する
-constexpr float GYRO_SPIN   = 150.0f;  // これ以上の角速度を「回転」とみなす
-constexpr int   SPIN_FRAMES = 5;       // 連続で回り続けたら目が回る(約100ms)
+constexpr float GYRO_SPIN   = 200.0f;  // これ以上の角速度を「回転」とみなす（やや鈍く）
+constexpr int   SPIN_FRAMES = 6;       // 連続で回り続けたら目が回る(約120ms)
 constexpr float GYRO_QUIET  = 80.0f;   // これ未満なら「回っていない」
-constexpr float TAP_MOTION  = 0.4f;    // 加速度スパイクをタップとみなすしきい値
+constexpr float TAP_MOTION  = 0.6f;    // 加速度スパイクをタップとみなすしきい値（やや鈍く）
 
 // ---- 時刻が同期済みか（NTP後 or 物理RTCから復元済み） ----
 bool clockReady() {
@@ -82,7 +123,7 @@ void applyWeatherPalette() {
     default: break;
   }
   cp.set(COLOR_BACKGROUND, bg);
-  cp.set(COLOR_PRIMARY, TFT_WHITE);
+  cp.set(COLOR_PRIMARY, hsv565(gHue, 200, 255));  // 顔の色は個体ごとに異なる
   avatar.setColorPalette(cp);
 }
 
@@ -138,11 +179,11 @@ void showStatus() {
   bar("ごきげん", pet.st.happiness, TFT_PINK);
   bar("げんき",   pet.st.energy, TFT_GREEN);
 
-  y += 16;
+  y += 14;
   lcd.setTextDatum(top_left);
-  lcd.drawString("ともだち: " + String(pet.st.friends) + "ひき", 10, y); y += 20;
-  lcd.drawString("たまご  : " + String(pet.st.eggs) + "こ", 10, y);     y += 20;
-  lcd.drawString("ねんれい: " + String(pet.st.ageMin) + "ふん", 10, y); y += 20;
+  lcd.drawString("ともだち: " + String(pet.st.friends) + "ひき", 10, y); y += 24;
+  lcd.drawString("たまご  : " + String(pet.st.eggs) + "こ", 10, y);     y += 24;
+  lcd.drawString("ねんれい: " + String(pet.st.ageMin) + "ふん", 10, y); y += 24;
   if (weather.valid) {
     lcd.drawString("てんき  : " + String(Weather::kindLabel(weather.kind)) +
                        " " + String(weather.temperature, 1) + "C",
@@ -152,7 +193,7 @@ void showStatus() {
   }
   struct tm tnow;
   if (getLocalTime(&tnow, 10)) {           // 時刻が同期済みなら現在時刻も表示
-    y += 20;
+    y += 24;
     char buf[8];
     snprintf(buf, sizeof(buf), "%02d:%02d", tnow.tm_hour, tnow.tm_min);
     lcd.drawString(String("じこく  : ") + buf, 10, y);
@@ -173,7 +214,7 @@ void fetchWeather() {
   StreetPass::end();
   bool ok = Weather::fetch(weather);
   StreetPass::begin();
-  StreetPass::setMyInfo(pet.st.eggs);
+  updateMyInfo();
 
   // 時刻が同期できていれば物理RTCにも保存（次回起動で復元。Gray非搭載機はスキップ）
   if (M5.Rtc.isEnabled() && clockReady()) {
@@ -198,8 +239,81 @@ void eggEvent() {
   avatar.setExpression(Expression::Happy);
   delay(4000);
   pet.layEgg();
-  StreetPass::setMyInfo(pet.st.eggs);
+  updateMyInfo();
   say("あたらしい なかまだよ");
+}
+
+// ---- すれちがいバトル＆相性（ESP-NOWで出会った相手と総合力で対戦） ----
+void battleWithFriend(const FriendInfo &fi) {
+  uint16_t myPow = pet.power();
+  say(String(fi.name) + "に あった！", 2500);
+  delay(2500);
+  say("バトル！ " + String(myPow) + " 対 " + String(fi.power), 3000);
+  delay(3000);
+  if (myPow > fi.power) {
+    pet.st.battleWins++;
+    pet.st.happiness = min(100, pet.st.happiness + 15);
+    avatar.setExpression(Expression::Happy);
+    say("かった〜！", 3000);
+  } else if (myPow < fi.power) {
+    avatar.setExpression(Expression::Sad);
+    say("まけた… くやしい", 3000);
+  } else {
+    say("ひきわけ！", 3000);
+  }
+  delay(3000);
+  // 体色(色相)の近さで相性を算出
+  int dh = abs((int)gHue - (int)fi.hue);
+  if (dh > 180) dh = 360 - dh;
+  int aisho = 100 - dh * 100 / 180;
+  avatar.setExpression(Expression::Neutral);
+  say(String(PERSONALITY_NAMES[fi.personality & 3]) + "と\nあいしょう " + String(aisho) + "%", 3500);
+  delay(3500);
+  pet.save();
+}
+
+// ---- じまんカード（QR＋成績）。スマホで読むとPagesのカードが開く ----
+void showQrCard() {
+  avatar.suspend();
+  auto &lcd = M5.Display;
+  lcd.setRotation(baseRotation);
+  lcd.fillScreen(TFT_BLACK);
+
+  char url[200];
+  snprintf(url, sizeof(url),
+           "https://sin1.studio/AvaGotchi/card.html#p=%d&c=%u&d=%lu&e=%u&f=%u&g=%u&s=%u&b=%u&w=%u",
+           pet.personality, gHue, (unsigned long)(pet.st.ageMin / 1440),
+           pet.st.eggs, pet.st.friends, pet.st.goldMedals, pet.st.silverMedals,
+           pet.st.bronzeMedals, pet.st.battleWins);
+  lcd.qrcode(url, 8, 56, 152, 7);  // 左側にQR
+
+  lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  lcd.setTextDatum(top_left);
+  lcd.setFont(&fonts::efontJA_16);
+  lcd.drawString("じまんカード", 8, 8);
+  lcd.setFont(&fonts::efontJA_12);
+  int x = 174, y = 30;
+  lcd.drawString(String(PERSONALITY_NAMES[pet.personality]), x, y); y += 22;
+  lcd.drawString("すきな " + String(FAVORITES[gFavorite]), x, y);   y += 22;
+  lcd.drawString("いくせい" + String(pet.st.ageMin / 1440) + "にち", x, y); y += 22;
+  lcd.drawString("たまご " + String(pet.st.eggs), x, y);            y += 22;
+  lcd.drawString("ともだち" + String(pet.st.friends), x, y);        y += 22;
+  lcd.drawString("金" + String(pet.st.goldMedals) + " 銀" + String(pet.st.silverMedals) +
+                     " 銅" + String(pet.st.bronzeMedals), x, y);    y += 22;
+  lcd.setFont(&fonts::efontJA_10);
+  lcd.setTextColor(TFT_CYAN, TFT_BLACK);
+  lcd.drawString("「" + String(achievementTitle()) + "」", x, y);   y += 18;
+  lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  lcd.drawString("スマホでQR→SNSへ", 8, 214);
+
+  // 15秒、またはB/Cで戻る
+  uint32_t t0 = millis();
+  while (millis() - t0 < 15000) {
+    M5.update();
+    if (M5.BtnB.wasClicked() || M5.BtnC.wasClicked()) break;
+    delay(20);
+  }
+  avatar.resume();
 }
 
 void setup() {
@@ -232,13 +346,21 @@ void setup() {
 
   pet.load();
 
+  // チップ固有IDから個体差（色・性格・好物）を決める
+  uint64_t mac = ESP.getEfuseMac();
+  uint32_t id = (uint32_t)(mac ^ (mac >> 32));
+  pet.personality = id % 4;
+  gHue = id % 360;
+  gFavorite = (id / 4) % 5;
+
   avatar.init();
   avatar.setSpeechFont(&fonts::efontJA_12);  // 吹き出しは小さめにして長文も収める
+  baseRotation = M5.Display.getRotation();   // 逆さ表示からの復帰用に基準を記録
   applyWeatherPalette();
   say(greetingByTime());  // 時間帯に応じたあいさつ
 
   StreetPass::begin();
-  StreetPass::setMyInfo(pet.st.eggs);
+  updateMyInfo();
   lastDecayMs = millis();
 }
 
@@ -261,7 +383,7 @@ void loop() {
       }
     } else {
       pet.feed();
-      say("もぐもぐ おいしい!");
+      say(String(FAVORITES[gFavorite]) + " もぐもぐ!");
       fullPressCount = 0;
       for (int i = 0; i < 4; i++) {        // もぐもぐ口を動かす
         avatar.setMouthOpenRatio(0.8f);
@@ -271,10 +393,14 @@ void loop() {
       }
     }
   }
-  if (M5.BtnB.wasClicked() && !pet.st.sleeping) {  // ミニゲーム選択
+  if (M5.BtnB.wasHold()) {                          // じまんカード(QR)を表示
+    showQrCard();
+  } else if (M5.BtnB.wasClicked() && !pet.st.sleeping) {  // ミニゲーム選択
     int up = MiniGame::selectAndPlay(hasImu);
     if (up >= 0) {
       pet.play(up);
+      pet.recordMedal(up);   // 金・銀・銅を実績に記録
+      updateMyInfo();
       say(up >= 25 ? "たのしかった〜!!" : up >= 10 ? "また あそぼ!" : "うーん…ざんねん");
     }
   }
@@ -317,7 +443,8 @@ void loop() {
       if (pet.st.sleeping) {
         say("う〜ん…");  // そっと触られた程度では起きない
       } else {
-        pet.st.happiness = (pet.st.happiness < 100) ? pet.st.happiness + 1 : 100;
+        int d = (pet.personality == 1) ? 3 : 1;  // 甘えん坊は喜びやすい
+        pet.st.happiness = min(100, pet.st.happiness + d);
         say("くすぐったい!", 1500);
       }
     }
@@ -331,12 +458,21 @@ void loop() {
       else if (!upsideNotified && now - upsideStartMs > 700) {  // 0.7秒続いたら気付く
         upsideNotified = true;
         isUpsideDown = true;
+        // 逆さに持っている人から文字が読めるよう、画面ごと180度反転する
+        avatar.suspend();
+        M5.Display.setRotation(baseRotation ^ 2);
+        avatar.resume();
         say("わわっ さかさまだよ!");
       }
     } else {
       upsideStartMs = 0;
       upsideNotified = false;
-      isUpsideDown = false;
+      if (isUpsideDown) {        // 元の向きに戻す
+        isUpsideDown = false;
+        avatar.suspend();
+        M5.Display.setRotation(baseRotation);
+        avatar.resume();
+      }
     }
 
     // ゆるい傾きで顔も一緒に傾く（目が回る・逆さの間は固定）
@@ -346,12 +482,14 @@ void loop() {
     }
   }
 
-  // --- すれちがい通信 ---
+  // --- すれちがい通信＆バトル ---
+  updateMyInfo();          // 送信前に総合力などを最新化
   StreetPass::update();
   FriendInfo fi;
   if (StreetPass::popNewFriend(fi)) {
     pet.meetFriend();
-    say(String(fi.name) + "に あったよ!", 5000);
+    battleWithFriend(fi);  // 総合力で対戦＋相性診断
+    updateMyInfo();
   }
 
   // --- 毎正時の時報（時刻が同期済みのときだけ） ---

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AvaGotchi じまんカード</title>
+  <style>
+    :root { --bg:#0f1226; --card:#1b1f3b; --text:#eef1ff; --muted:#aab2d5; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
+           background:radial-gradient(1000px 500px at 70% -10%,#2a2f63,var(--bg) 55%); color:var(--text);
+           min-height:100vh; display:flex; justify-content:center; align-items:center; padding:24px; }
+    .card { background:var(--card); border:1px solid rgba(255,255,255,.1); border-radius:22px;
+            padding:28px; max-width:420px; width:100%; box-shadow:0 14px 44px rgba(0,0,0,.4); text-align:center; }
+    .face { width:120px; height:120px; border-radius:50%; margin:0 auto 14px; position:relative; }
+    .eye { width:16px; height:16px; background:#0f1226; border-radius:50%; position:absolute; top:46px; }
+    .eye.l{ left:32px; } .eye.r{ right:32px; }
+    .mouth { width:40px; height:18px; border-bottom:5px solid #0f1226; border-radius:0 0 40px 40px;
+             position:absolute; left:40px; top:72px; }
+    h1 { margin:.2em 0; font-size:1.5rem; }
+    .persona { color:#6cc6ff; font-weight:700; margin-bottom:4px; }
+    .title { display:inline-block; background:rgba(108,198,255,.15); color:#6cc6ff;
+             border-radius:999px; padding:4px 14px; font-size:.9rem; margin:6px 0 16px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0 18px; }
+    .stat { background:rgba(255,255,255,.05); border-radius:12px; padding:10px; }
+    .stat b { display:block; font-size:1.4rem; }
+    .stat span { color:var(--muted); font-size:.8rem; }
+    .medals { font-size:1.3rem; margin-bottom:18px; }
+    .share { display:inline-block; background:#1d9bf0; color:#fff; text-decoration:none;
+             padding:12px 26px; border-radius:999px; font-weight:700; }
+    a.home { display:block; margin-top:18px; color:var(--muted); font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="face" id="face">
+      <div class="eye l"></div><div class="eye r"></div><div class="mouth"></div>
+    </div>
+    <div class="persona" id="persona">—</div>
+    <h1>うちの AvaGotchi</h1>
+    <div class="title" id="title">みならい</div>
+    <div class="grid">
+      <div class="stat"><b id="days">0</b><span>いくせい日数</span></div>
+      <div class="stat"><b id="eggs">0</b><span>たまご</span></div>
+      <div class="stat"><b id="friends">0</b><span>ともだち</span></div>
+      <div class="stat"><b id="wins">0</b><span>バトル勝利</span></div>
+    </div>
+    <div class="medals" id="medals">🥇0 🥈0 🥉0</div>
+    <a class="share" id="share" href="#" target="_blank" rel="noopener">Xでシェア</a>
+    <a class="home" href="./">← AvaGotchi を書き込む</a>
+  </div>
+
+  <script>
+    const P = ["くいしんぼう", "あまえんぼう", "げんきっこ", "おっとり"];
+    const q = new URLSearchParams(location.hash.slice(1));
+    const n = (k, d = 0) => parseInt(q.get(k) ?? d, 10) || 0;
+
+    const hue = n("c", 200);
+    const pIdx = Math.min(3, n("p", 0));
+    const days = n("d"), eggs = n("e"), friends = n("f"), wins = n("w");
+    const g = n("g"), s = n("s"), b = n("b");
+
+    // 顔の色を個体色に
+    document.getElementById("face").style.background = `hsl(${hue},70%,65%)`;
+    document.getElementById("persona").textContent = P[pIdx];
+    document.getElementById("days").textContent = days;
+    document.getElementById("eggs").textContent = eggs;
+    document.getElementById("friends").textContent = friends;
+    document.getElementById("wins").textContent = wins;
+    document.getElementById("medals").textContent = `🥇${g} 🥈${s} 🥉${b}`;
+
+    // 称号（デバイス側と同じ基準）
+    let title = "みならい";
+    if (g >= 10) title = "ゲームマスター";
+    else if (wins >= 10) title = "バトルおうじゃ";
+    else if (eggs >= 10) title = "でんせつの おやどり";
+    else if (friends >= 20) title = "にんきもの";
+    else if (eggs >= 3) title = "いっかの たいちょう";
+    else if (friends >= 5) title = "ともだち おおい";
+    document.getElementById("title").textContent = title;
+
+    // Xシェア
+    const text = `うちの AvaGotchi(${P[pIdx]})は いくせい${days}日・たまご${eggs}・ともだち${friends}・🥇${g}🥈${s}🥉${b}！「${title}」 #AvaGotchi #ｽﾀｯｸﾁｬﾝ`;
+    document.getElementById("share").href =
+      "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) +
+      "&url=" + encodeURIComponent("https://sin1.studio/AvaGotchi/");
+  </script>
+</body>
+</html>
