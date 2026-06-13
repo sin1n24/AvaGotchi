@@ -127,9 +127,16 @@
     <div class="card">
       <h2>③ うまくいかないとき</h2>
       <ul class="note">
+        <li><b>「Failed to initialize」やリセットを繰り返す</b> → 書き込みモードに入れていません。次を順に試してください：
+          <ol style="margin-top:6px;">
+            <li>他のシリアル接続を<b>すべて閉じる</b>（Arduino IDE・PlatformIOモニタ・M5Burner・別タブ）</li>
+            <li>INSTALL を押し、<b>「Connecting…」表示中に本体の赤い電源ボタンを1回カチッと押す</b>（手動リセット）</li>
+            <li>USB ケーブルを変える／PC に直挿し（充電専用ケーブル・ハブは不可）</li>
+            <li>Chrome と Edge を切り替えてみる</li>
+          </ol>
+        </li>
         <li>ボタンが灰色のまま → スマホや非対応ブラウザです。PCの Chrome / Edge で開いてください。</li>
         <li>ポート一覧に出てこない → <b>CP210x USB ドライバ</b>（Silicon Labs）が必要な場合があります。</li>
-        <li>書き込みが始まらない → 一度 USB を挿し直し、本体側面のリセット後に再度お試しください。</li>
         <li>天気・時刻機能は WiFi 設定が必要です（配布版は未設定。ソースの <code>secrets.h</code> 参照）。</li>
       </ul>
     </div>
