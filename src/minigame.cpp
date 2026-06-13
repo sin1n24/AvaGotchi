@@ -41,12 +41,20 @@ void waitButtonRelease() {
   } while (M5.BtnB.isPressed());
 }
 
+// ごきげん上昇量(0-30)を金・銀・銅の3段階メダルで評価して表示
+void showMedal(int up) {
+  const char *m = up >= 25 ? "きんメダル！" : up >= 15 ? "ぎんメダル！" : "どうメダル！";
+  avatar.setExpression(up >= 15 ? Expression::Happy : Expression::Neutral);
+  sayG(m);
+  delay(2600);
+}
+
 // ===== 会話型ゲーム（Bボタンのみ・戻り値＝ごきげん上昇量 0〜30） =====
 
 // 1. 5びょうあて：合図から5秒ぴったりでBを押す
 int gameTiming() {
   avatar.setExpression(Expression::Happy);
-  sayG("5びょう ぴったりで\nBを おしてね！");
+  sayG("5びょうで\nBを おして！");
   delay(2800);
   sayG("ようい…");
   delay(random(800, 1700));
@@ -70,7 +78,7 @@ int gameTiming() {
 // 2. はんしゃしんけい：「いまだ！」で素早くB
 int gameReaction() {
   avatar.setExpression(Expression::Neutral);
-  sayG("「いまだ！」で\nすぐ Bを おして");
+  sayG("あいずで\nすぐ Bを！");
   delay(2800);
   sayG("……");
   uint32_t waitMs = random(1500, 4500), t0 = millis();
@@ -119,7 +127,7 @@ int gameMash() {
 
 // 4. ラッキー7：数を数えて7でBを押す
 int gameLucky7() {
-  sayG("7を かぞえたら\nBを おして！");
+  sayG("7で Bを\nおして！");
   delay(2800);
   int pressedAt = -1;
   for (int n = 1; n <= 12; n++) {
@@ -146,7 +154,7 @@ int gameLucky7() {
 
 // 5. がまんくらべ（にらめっこ）：変な顔に耐えた時間を競う
 int gameStare() {
-  sayG("にらめっこ！\nわらったら Bで こうさん");
+  sayG("にらめっこ！\nわらったら B");
   delay(2800);
   Expression faces[] = {Expression::Angry, Expression::Doubt, Expression::Sad, Expression::Happy};
   const char *lines[] = {"あっぷっぷ！", "ふふ〜ん", "へんなかお！", "むふ〜"};
@@ -280,17 +288,21 @@ int gameBall() {
     delay(16);
   }
 
+  int up = score > 10 ? 30 : score * 3;
+  const char *m = up >= 25 ? "きんメダル！" : up >= 15 ? "ぎんメダル！" : "どうメダル！";
+  uint16_t mc = up >= 25 ? TFT_YELLOW : up >= 15 ? TFT_WHITE : TFT_ORANGE;
+
   lcd.fillScreen(TFT_BLACK);
-  drawPet(lcd, W / 2, H / 2 - 34, 26, score > 5 ? MOOD_HAPPY : MOOD_NORMAL);
+  drawPet(lcd, W / 2, H / 2 - 34, 26, up >= 15 ? MOOD_HAPPY : MOOD_NORMAL);
   lcd.setFont(&fonts::efontJA_24);
   lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   lcd.setTextDatum(middle_center);
   lcd.drawString("たべた: " + String(score), W / 2, H / 2 + 16);
-  lcd.setFont(&fonts::efontJA_16);
-  lcd.drawString(score > 10 ? "おなか いっぱい!" : "また あそぼうね", W / 2, H / 2 + 48);
-  delay(2200);
+  lcd.setTextColor(mc, TFT_BLACK);
+  lcd.drawString(m, W / 2, H / 2 + 50);
+  delay(2600);
 
-  return score > 10 ? 30 : score * 3;
+  return up;
 }
 
 // ===== 選択画面 =====
@@ -303,14 +315,14 @@ int selectMenu(const char **menu, int count) {
     lcd.fillScreen(TFT_BLACK);
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
     lcd.setTextDatum(top_left);
-    lcd.setFont(&fonts::efontJA_16);
+    lcd.setFont(&fonts::efontJA_14);
     lcd.drawString("ゲームを えらぶ", 8, 6);
+    lcd.setFont(&fonts::efontJA_10);
+    lcd.drawString("Bおす:つぎ  Bながおし:けってい", 8, 26);
     lcd.setFont(&fonts::efontJA_12);
-    lcd.drawString("Bおす:つぎ  Bながおし:けってい", 8, 28);
-    lcd.setFont(&fonts::efontJA_16);
     for (int i = 0; i < count; i++) {
       lcd.setTextColor(i == idx ? TFT_YELLOW : TFT_WHITE, TFT_BLACK);
-      lcd.drawString((i == idx ? "> " : "  ") + String(menu[i]), 16, 50 + i * 28);
+      lcd.drawString((i == idx ? "> " : "  ") + String(menu[i]), 16, 46 + i * 22);
     }
   };
   draw();
@@ -351,7 +363,7 @@ int selectAndPlay(bool imuAvailable) {
 
   int up = 0;
   if (imuAvailable && sel == 5) {
-    up = gameBall();    // 傾けゲームはsuspendのままLCD直書き
+    up = gameBall();    // 傾けゲームはsuspendのままLCD直書き（メダルもLCDで表示）
     avatar.resume();
   } else {
     avatar.resume();    // 会話ゲームはAvatarを使う
@@ -362,6 +374,7 @@ int selectAndPlay(bool imuAvailable) {
       case 3: up = gameLucky7();   break;
       case 4: up = gameStare();    break;
     }
+    showMedal(up);      // 金・銀・銅で評価
   }
   clearSpeech();
   return up;

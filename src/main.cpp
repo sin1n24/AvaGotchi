@@ -125,7 +125,7 @@ void showStatus() {
   lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   int y = 16;
   const int rowH = 24;
-  const int barX = 94;                   // ラベル文字と重ならないようゲージを右へ
+  const int barX = 112;                  // ラベル文字と重ならないようゲージを右へ
   const int barW = W - barX - 12;         // 画面幅に合わせてゲージ幅を自動調整
   auto bar = [&](const char *label, int v, uint16_t color) {
     lcd.setTextDatum(middle_left);        // 文字をバーの高さの中央に合わせる
@@ -138,7 +138,7 @@ void showStatus() {
   bar("ごきげん", pet.st.happiness, TFT_PINK);
   bar("げんき",   pet.st.energy, TFT_GREEN);
 
-  y += 6;
+  y += 16;
   lcd.setTextDatum(top_left);
   lcd.drawString("ともだち: " + String(pet.st.friends) + "ひき", 10, y); y += 20;
   lcd.drawString("たまご  : " + String(pet.st.eggs) + "こ", 10, y);     y += 20;
@@ -157,7 +157,13 @@ void showStatus() {
     snprintf(buf, sizeof(buf), "%02d:%02d", tnow.tm_hour, tnow.tm_min);
     lcd.drawString(String("じこく  : ") + buf, 10, y);
   }
-  delay(4000);
+  // 4秒経過、またはもう一度Cボタンを押したら即座に顔へ戻る
+  uint32_t t0 = millis();
+  while (millis() - t0 < 4000) {
+    M5.update();
+    if (M5.BtnC.wasClicked()) break;
+    delay(20);
+  }
   avatar.resume();
 }
 
@@ -227,7 +233,7 @@ void setup() {
   pet.load();
 
   avatar.init();
-  avatar.setSpeechFont(&fonts::efontJA_16);
+  avatar.setSpeechFont(&fonts::efontJA_12);  // 吹き出しは小さめにして長文も収める
   applyWeatherPalette();
   say(greetingByTime());  // 時間帯に応じたあいさつ
 
@@ -257,6 +263,12 @@ void loop() {
       pet.feed();
       say("もぐもぐ おいしい!");
       fullPressCount = 0;
+      for (int i = 0; i < 4; i++) {        // もぐもぐ口を動かす
+        avatar.setMouthOpenRatio(0.8f);
+        delay(120);
+        avatar.setMouthOpenRatio(0.0f);
+        delay(120);
+      }
     }
   }
   if (M5.BtnB.wasClicked() && !pet.st.sleeping) {  // ミニゲーム選択
