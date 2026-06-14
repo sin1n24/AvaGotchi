@@ -361,21 +361,38 @@ int runGame(int game) {
 
 namespace MiniGame {
 
-int selectAndPlay(bool imuAvailable, int weatherGameIdx, const char *weatherGameName) {
+// ゲーム種別(関数ID)→難易度(1:かんたん 2:ふつう 3:むずい)。経験値倍率にも使う。
+static int diffOf(int gameId) {
+  switch (gameId) {
+    case 2: case 3: return 1;  // れんだ / かずあて(ラッキー7) = かんたん
+    case 0: case 1: return 2;  // 5びょうあて / はんしゃ = ふつう
+    default:        return 3;  // がまんくらべ / かたむけ = むずい
+  }
+}
+
+int selectAndPlay(bool imuAvailable, int weatherGameIdx, const char *weatherGameName,
+                  int unlockedTalkGames, int *gainedExp) {
   const char *menu[7];
-  int gameMap[7];  // メニュー位置 → ゲーム種別
+  int gameMap[7];  // メニュー位置 → ゲーム種別(関数ID)
   int count = 0;
-  // 天気限定ゲーム（取得済みなら先頭に）
+  if (gainedExp) *gainedExp = 0;
+  if (unlockedTalkGames < 1) unlockedTalkGames = 1;
+  if (unlockedTalkGames > 5) unlockedTalkGames = 5;
+  // 天気限定ゲーム（取得済みなら先頭に。解放数に関わらず遊べる特典）
   if (weatherGameIdx >= 0 && weatherGameName) {
     menu[count] = weatherGameName;
     gameMap[count] = weatherGameIdx;
     count++;
   }
-  // 基本5種
-  const char *base[5] = {"5びょう あて", "はんしゃ しんけい", "れんだ", "ラッキー7", "がまんくらべ"};
-  for (int i = 0; i < 5; i++) { menu[count] = base[i]; gameMap[count] = i; count++; }
-  // IMU機(Gray等)は傾けゲームを追加
-  if (imuAvailable) { menu[count] = "かたむけて エサとり"; gameMap[count] = 5; count++; }
+  // 基本5種：やさしい順。レベルで解放済みの先頭 unlockedTalkGames 個だけ出す。
+  const char *base[5] = {"かんたん：かずあて", "かんたん：れんだ",
+                         "ふつう：5びょうあて", "ふつう：はんしゃ", "むずい：がまんくらべ"};
+  const int baseId[5] = {3, 2, 0, 1, 4};  // 表示順→関数ID
+  for (int i = 0; i < unlockedTalkGames; i++) {
+    menu[count] = base[i]; gameMap[count] = baseId[i]; count++;
+  }
+  // IMU機(Gray等)は傾けゲームを追加（むずい）
+  if (imuAvailable) { menu[count] = "むずい：かたむけ"; gameMap[count] = 5; count++; }
 
   int sel = selectMenu(menu, count);  // この中でavatar.suspend()
   if (sel < 0) {
@@ -395,6 +412,9 @@ int selectAndPlay(bool imuAvailable, int weatherGameIdx, const char *weatherGame
     showMedal(up);      // 金・銀・銅で評価
   }
   clearSpeech();
+  // 経験値＝難易度 × メダル(金3/銀2/銅1)。難しいゲームほど多くもらえる。
+  int medal = up >= 25 ? 3 : up >= 15 ? 2 : 1;
+  if (gainedExp) *gainedExp = diffOf(game) * medal;
   return up;
 }
 

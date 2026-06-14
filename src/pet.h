@@ -7,7 +7,8 @@ struct PetState {
   int happiness = 70;  // ごきげん 0-100
   int energy    = 70;  // 元気 0-100
   uint16_t friends = 0;  // すれちがった友達の数
-  uint16_t eggs    = 0;  // 産んだたまごの数
+  uint8_t  level   = 1;  // レベル（1から。状態が良いと経験値が貯まって上がる）
+  uint16_t exp     = 0;  // 現在レベル内の経験値
   uint32_t ageMin  = 0;  // 年齢(分)
   bool sleeping = false; // おやすみ中
   // --- 実績カウンタ（世代交代しても引き継ぐ累計値） ---
@@ -28,15 +29,16 @@ class Pet {
 
   void load();                 // NVSから復元
   void save();                 // NVSへ保存
-  void decay();                // 1分ごとの減衰（性格で速度が変わる）
+  int  decay();                // 1分ごとの減衰＋経験値加算。戻り値=この回で上がったレベル数
   void feed();                 // ごはん
   void play(int score);        // ミニゲーム結果を反映
   void meetFriend();           // すれちがい成立
   void shaken();               // 強く振られた（目が回る）
   void recordMedal(int up);    // ゲーム結果(0-30)を金銀銅で記録
-  bool checkEgg();             // たまご条件を満たしたか
-  void layEgg();               // たまごを産んでリセット
+  int  addExp(int amount);     // 経験値を加算しレベル判定。戻り値=上がったレベル数
 
+  // 次のレベルに必要な経験値（レベルが上がるほど増える）
+  int expForNext() const;
   // この子の総合力（すれちがいバトルの強さ）
   uint16_t power() const;
 

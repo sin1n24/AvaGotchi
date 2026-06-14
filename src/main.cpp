@@ -45,22 +45,24 @@ uint16_t hsv565(uint16_t h, uint8_t s = 200, uint8_t v = 255) {
 const char *achievementTitle() {
   if (pet.st.goldMedals >= 10)   return "ゲームマスター";
   if (pet.st.battleWins >= 10)   return "バトルおうじゃ";
-  if (pet.st.eggs >= 10)         return "でんせつの おやどり";
+  if (pet.st.level >= 20)        return "でんせつっち";
   if (pet.st.friends >= 20)      return "にんきもの";
   if (pet.st.totalFeeds >= 100)  return "たべるの だいすき";
-  if (pet.st.eggs >= 3)          return "いっかの たいちょう";
+  if (pet.st.level >= 10)        return "いちにんまえ";
   if (pet.st.friends >= 5)       return "ともだち おおい";
   return "みならい";
 }
 
 // すれちがい用に、自分の最新情報をブロードキャストデータへ反映
 void updateMyInfo() {
-  StreetPass::setMyInfo(PET_NAME, pet.st.eggs, pet.power(), (uint8_t)pet.personality, gHue);
+  StreetPass::setMyInfo(PET_NAME, pet.st.level, pet.power(), (uint8_t)pet.personality, gHue);
 }
 
 uint32_t lastDecayMs = 0;
 uint32_t speechUntilMs = 0;   // この時刻まで吹き出しを表示
 uint32_t dizzyUntilMs = 0;    // 目が回っている間
+uint32_t lastInteractMs = 0;  // 最後に操作/反応があった時刻（独り言の起点）
+uint32_t idleMutterGap = 12000; // この時間ぶん放置されたら独り言（毎回ばらつかせる）
 String speechBuf;             // setSpeechTextへ渡す文字列の保持用
 
 // --- IMUインタラクションの状態 ---
@@ -105,6 +107,41 @@ void say(const String &text, uint32_t ms = 3000) {
   speechBuf = text;
   avatar.setSpeechText(speechBuf.c_str());
   speechUntilMs = millis() + ms;
+  lastInteractMs = millis();  // 何か喋った＝活動した。直後は独り言を出さない
+}
+
+// ---- 状態に応じた独り言（要求・感想）。15〜30秒おきにふと口にする ----
+void mutter() {
+  // 配列からランダムに1つ選ぶ小道具
+  auto pick = [](const char *const *arr, int n) { return String(arr[random(n)]); };
+
+  if (pet.st.sleeping) {
+    static const char *s[] = {"むにゃむにゃ…", "zzz…", "ぐぅ…", "ゆめ みてる…"};
+    say(pick(s, 4), 2500);
+  } else if (pet.st.satiety < 35) {            // おなかすいた（要求）
+    static const char *s[] = {"おなかへった〜", "なにか たべたいなぁ", "ごはん まだ？",
+                              "おやつ ほしいな", "ぐ〜… おなかなった", "なんか たべたい"};
+    say(pick(s, 6), 2800);
+  } else if (pet.st.happiness < 35) {          // かまってほしい（要求）
+    static const char *s[] = {"あそんでよ〜", "ひまだなぁ", "かまって〜", "たいくつ…",
+                              "さみしいよ…", "ねえねえ、あそぼ？", "なんか つまんない"};
+    say(pick(s, 7), 2800);
+  } else if (pet.st.energy < 35) {             // ねむい（要求/感想）
+    static const char *s[] = {"ねむいなぁ〜", "ふぁ… ねむ", "やすみたいな…", "うとうと…",
+                              "もう ねちゃおうかな", "つかれたよ〜"};
+    say(pick(s, 6), 2800);
+  } else {                                     // 良好なときの感想・問いかけ・独り言
+    static const char *s[] = {
+      // 感想
+      "きょうも げんき!", "たのしいな♪", "るんるん♪", "だいすき!", "いいきぶん!",
+      "きょうは いいひだね", "へいわだな〜", "えへへ♪",
+      // 問いかけ系
+      "きょう、なにする？", "なにして あそぼ？", "げんきにしてた？",
+      "ねえ、しってる？", "いいこと ないかな〜", "おさんぽ いきたいな",
+      "なでなで して〜", "あそびに いかない？"};
+    say(pick(s, 16), 2600);
+  }
+  idleMutterGap = 14000 + random(13000);  // 次は約14〜27秒の放置で
 }
 
 // ---- 天気に合わせて背景色を変える ----
@@ -175,8 +212,9 @@ void showStatus() {
 
   y += 14;
   lcd.setTextDatum(top_left);
+  lcd.drawString("レベル  : " + String(pet.st.level) +
+                 " (" + String(pet.st.exp) + "/" + String(pet.expForNext()) + ")", 10, y); y += 24;
   lcd.drawString("ともだち: " + String(pet.st.friends) + "ひき", 10, y); y += 24;
-  lcd.drawString("たまご  : " + String(pet.st.eggs) + "こ", 10, y);     y += 24;
   lcd.drawString("ねんれい: " + String(pet.st.ageMin) + "ふん", 10, y); y += 24;
   if (weather.valid) {
     lcd.drawString("てんき  : " + String(Weather::kindLabel(weather.kind)) +
@@ -227,14 +265,20 @@ void fetchWeather() {
   }
 }
 
-// ---- たまごイベント ----
-void eggEvent() {
-  say("たまご うんだよ!!", 6000);
+// ---- レベルアップ演出（節目ごとに新機能を解放して知らせる） ----
+void levelUpEvent(int newLevel) {
   avatar.setExpression(Expression::Happy);
-  delay(4000);
-  pet.layEgg();
+  say("レベル " + String(newLevel) + " に なった！", 4000);
+  delay(3500);
+  const char *unlock = nullptr;
+  switch (newLevel) {           // 節目で機能解放（最初はかんたんに上がる）
+    case 2: unlock = "あそべる ゲームが\nふえたよ！";   break;
+    case 3: unlock = "すれちがい かいほう！";           break;
+    case 4: unlock = "じまんカード かいほう！";         break;
+    case 5: unlock = "ぜんゲーム かいほう！";           break;
+  }
+  if (unlock) { say(unlock, 4000); delay(3500); }
   updateMyInfo();
-  say("あたらしい なかまだよ");
 }
 
 // ---- すれちがいバトル＆相性（ESP-NOWで出会った相手と総合力で対戦） ----
@@ -266,33 +310,10 @@ void battleWithFriend(const FriendInfo &fi) {
   pet.save();
 }
 
-// ---- 逆さ専用画面：文字だけ180度回転して表示し、正立に戻るまで維持 ----
-void showUpsideScreen() {
-  avatar.suspend();  // Avatarを止めて画面を占有（再描画競合を防ぐ）
-  auto &lcd = M5.Display;
-  uint8_t rot = lcd.getRotation();
-  lcd.fillScreen(hsv565(gHue, 120, 70));  // 個体色の下地
-  int cx = lcd.width() / 2, cy = lcd.height() / 2;
-  // びっくり顔（正立のまま）
-  lcd.fillCircle(cx - 34, cy - 6, 9, TFT_WHITE);
-  lcd.fillCircle(cx + 34, cy - 6, 9, TFT_WHITE);
-  lcd.fillCircle(cx, cy + 28, 13, TFT_WHITE);
-  // 「文字だけ」180度回転（逆さに持っている人が読める向き）
-  lcd.setRotation(rot ^ 2);
-  lcd.setFont(&fonts::efontJA_16);
-  lcd.setTextColor(TFT_WHITE);
-  lcd.setTextDatum(middle_center);
-  lcd.drawString("さかさまだよ！", lcd.width() / 2, 34);
-  lcd.setRotation(rot);
-  // 正立に戻るまで待つ（少しヒステリシスを持たせてバタつき防止）
-  while (true) {
-    M5.update();
-    float ax, ay, az;
-    if (!M5.Imu.getAccel(&ax, &ay, &az)) break;
-    if (!((az < -0.4f) || (ay < -0.6f))) break;
-    delay(60);
-  }
-  avatar.resume();
+// ---- 逆さに気付いた時の反応：Avatarはそのまま、表情＋吹き出しで一言 ----
+void notifyUpside() {
+  avatar.setExpression(Expression::Doubt);  // びっくり気味の表情
+  say("わわっ さかさま！", 2000);
 }
 
 // ---- じまんカード（QR＋成績）。スマホで読むとPagesのカードが開く ----
@@ -303,9 +324,9 @@ void showQrCard() {
 
   char url[200];
   snprintf(url, sizeof(url),
-           "https://sin1.studio/AvaGotchi/card.html#p=%d&c=%u&d=%lu&e=%u&f=%u&g=%u&s=%u&b=%u&w=%u",
+           "https://sin1.studio/AvaGotchi/card.html#p=%d&c=%u&d=%lu&l=%u&f=%u&g=%u&s=%u&b=%u&w=%u",
            pet.personality, gHue, (unsigned long)(pet.st.ageMin / 1440),
-           pet.st.eggs, pet.st.friends, pet.st.goldMedals, pet.st.silverMedals,
+           pet.st.level, pet.st.friends, pet.st.goldMedals, pet.st.silverMedals,
            pet.st.bronzeMedals, pet.st.battleWins);
   lcd.qrcode(url, 8, 44, 140, 7);  // 左側にQR(140px)
 
@@ -319,7 +340,7 @@ void showQrCard() {
   lcd.drawString(String(PERSONALITY_NAMES[pet.personality]), x, y);  y += 22;
   lcd.drawString("すき:" + String(FAVORITES[gFavorite]), x, y);      y += 22;
   lcd.drawString("そだて" + String(pet.st.ageMin / 1440) + "日", x, y); y += 22;
-  lcd.drawString("たまご" + String(pet.st.eggs), x, y);              y += 22;
+  lcd.drawString("レベル" + String(pet.st.level), x, y);             y += 22;
   lcd.drawString("ともだち" + String(pet.st.friends), x, y);          y += 22;
   lcd.drawString("金" + String(pet.st.goldMedals) + " 銀" + String(pet.st.silverMedals) +
                      " 銅" + String(pet.st.bronzeMedals), x, y);
@@ -380,7 +401,7 @@ void setup() {
   avatar.init();
   avatar.setSpeechFont(&fonts::efontJA_12);  // 吹き出しは小さめにして長文も収める
   applyWeatherPalette();
-  say(greetingByTime());  // 時間帯に応じたあいさつ
+  say(greetingByTime());  // 時間帯に応じたあいさつ（独り言タイマーもここで起点に）
 
   StreetPass::begin();
   updateMyInfo();
@@ -392,8 +413,11 @@ void loop() {
   const uint32_t now = millis();
 
   // --- ボタン操作 ---
-  if (M5.BtnA.wasHold()) {              // じまんカード(QR)を表示
-    showQrCard();
+  // 押下を先に拾っておく（ゲーム等のブロッキング処理から戻った後の時刻で更新するため）
+  bool anyBtn = M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed();
+  if (M5.BtnA.wasHold()) {              // じまんカード(QR)を表示（Lv4で解放）
+    if (pet.st.level >= 4) showQrCard();
+    else say("レベル4で\nじまんカード！", 2500);
   } else if (M5.BtnA.wasClicked()) {    // ごはん
     if (pet.st.sleeping) {
       pet.st.sleeping = false;          // 起こしてしまった
@@ -432,12 +456,17 @@ void loop() {
         default: break;
       }
     }
-    int up = MiniGame::selectAndPlay(hasImu, wIdx, wName);
+    int unlocked = constrain((int)pet.st.level, 1, 5);  // レベルで遊べる会話ゲーム数が増える
+    int gainedExp = 0;
+    int up = MiniGame::selectAndPlay(hasImu, wIdx, wName, unlocked, &gainedExp);
     if (up >= 0) {
       pet.play(up);
       pet.recordMedal(up);   // 金・銀・銅を実績に記録
+      int ups = pet.addExp(gainedExp);  // 難易度×メダルぶんの経験値
       updateMyInfo();
-      say(up >= 25 ? "たのしかった〜!!" : up >= 10 ? "また あそぼ!" : "うーん…ざんねん");
+      say((up >= 25 ? "たのしかった〜!!" : up >= 10 ? "また あそぼ!" : "うーん…ざんねん") +
+          String("\n+") + gainedExp + "けいけんち");
+      if (ups > 0) { delay(2800); levelUpEvent(pet.st.level); }  // 結果を見せてから昇格演出
     }
   }
   if (M5.BtnC.wasHold()) {              // 天気更新
@@ -445,6 +474,8 @@ void loop() {
   } else if (M5.BtnC.wasClicked()) {    // ステータス
     showStatus();
   }
+  // ボタンを触ったら（長いブロッキング処理の後でも）独り言タイマーをリセット
+  if (anyBtn) lastInteractMs = millis();
 
   // --- IMU: 回転(目が回る) / タップ(くすぐったい) / 傾き / 上下逆さ ---
   //     IMU搭載機(Gray等)のみ。Basic無印(IMU無し)では丸ごとスキップ。
@@ -493,9 +524,7 @@ void loop() {
       if (upsideStartMs == 0) upsideStartMs = now;
       else if (!upsideNotified && now - upsideStartMs > 700) {  // 0.7秒続いたら気付く
         upsideNotified = true;
-        showUpsideScreen();      // 正立に戻るまで逆さ画面（文字だけ反転）
-        upsideStartMs = 0;
-        upsideNotified = false;
+        notifyUpside();          // Avatarはそのまま、表情＋吹き出しで反応
       }
     } else {
       upsideStartMs = 0;
@@ -513,7 +542,7 @@ void loop() {
   updateMyInfo();          // 送信前に総合力などを最新化
   StreetPass::update();
   FriendInfo fi;
-  if (StreetPass::popNewFriend(fi)) {
+  if (StreetPass::popNewFriend(fi) && pet.st.level >= 3) {  // すれちがいはLv3で解放
     pet.meetFriend();
     battleWithFriend(fi);  // 総合力で対戦＋相性診断
     updateMyInfo();
@@ -533,9 +562,9 @@ void loop() {
   // --- 時間経過 ---
   if (now - lastDecayMs >= DECAY_INTERVAL_MS) {
     lastDecayMs = now;
-    pet.decay();
+    int ups = pet.decay();      // 状態が良ければ経験値が貯まりレベルが上がる
     pet.save();
-    if (pet.checkEgg()) eggEvent();
+    if (ups > 0) levelUpEvent(pet.st.level);
     // ときどき天気の感想をつぶやく
     if (weather.valid && random(4) == 0) {
       switch (weather.kind) {
@@ -552,6 +581,12 @@ void loop() {
   if (speechUntilMs && now > speechUntilMs) {
     speechUntilMs = 0;
     avatar.setSpeechText("");
+  }
+
+  // --- ふとした独り言（しばらく触られず、吹き出しも空いているとき限定） ---
+  if (!speechUntilMs && now - lastInteractMs >= idleMutterGap &&
+      now >= dizzyUntilMs && now >= grumpyUntilMs) {
+    mutter();
   }
   updateExpression();
 

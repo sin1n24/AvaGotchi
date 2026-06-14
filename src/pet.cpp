@@ -10,7 +10,8 @@ void Pet::load() {
   st.happiness = prefs.getInt("hap", 70);
   st.energy    = prefs.getInt("ene", 70);
   st.friends   = prefs.getUShort("frd", 0);
-  st.eggs      = prefs.getUShort("egg", 0);
+  st.level     = prefs.getUChar("lvl", 1);
+  st.exp       = prefs.getUShort("exp", 0);
   st.ageMin    = prefs.getULong("age", 0);
   st.totalFeeds   = prefs.getUShort("fed", 0);
   st.goldMedals   = prefs.getUShort("gld", 0);
@@ -26,7 +27,8 @@ void Pet::save() {
   prefs.putInt("hap", st.happiness);
   prefs.putInt("ene", st.energy);
   prefs.putUShort("frd", st.friends);
-  prefs.putUShort("egg", st.eggs);
+  prefs.putUChar("lvl", st.level);
+  prefs.putUShort("exp", st.exp);
   prefs.putULong("age", st.ageMin);
   prefs.putUShort("fed", st.totalFeeds);
   prefs.putUShort("gld", st.goldMedals);
@@ -36,7 +38,7 @@ void Pet::save() {
   prefs.end();
 }
 
-void Pet::decay() {
+int Pet::decay() {
   st.ageMin++;
   // 性格で減りやすさが変わる（個体差）
   int sd = SATIETY_DECAY, hd = HAPPINESS_DECAY, ed = ENERGY_DECAY;
@@ -58,6 +60,36 @@ void Pet::decay() {
   }
   // おなかが空きすぎるとごきげんも下がる
   if (st.satiety < 20) st.happiness = clamp100(st.happiness - 3);
+
+  // --- 経験値：満腹・ごきげん・元気が高いほど貯まる（快適に過ごすと成長） ---
+  // 寝ている間は成長しない（夢の中ではレベルアップしない）
+  int gain = 0;
+  if (!st.sleeping) {
+    if (st.satiety   >= 70) gain++;
+    if (st.happiness >= 70) gain++;
+    if (st.energy    >= 70) gain++;
+    if (gain >= 3) gain++;  // すべて好調ならボーナス（最大4/分）
+  }
+  return addExp(gain);
+}
+
+// 経験値を加算し、必要量に達したらレベルアップ。上がったレベル数を返す。
+int Pet::addExp(int amount) {
+  if (amount <= 0) return 0;
+  int ups = 0;
+  st.exp += amount;
+  while (st.level < 99 && st.exp >= expForNext()) {
+    st.exp -= expForNext();
+    st.level++;
+    ups++;
+  }
+  return ups;
+}
+
+// 次のレベルに必要な経験値。最初は小さく、レベルが上がるほど急に増える。
+//   Lv1→2:10  2→3:25  3→4:50  4→5:85  5→6:130 …（5 + level^2 * 5）
+int Pet::expForNext() const {
+  return 5 + (int)st.level * (int)st.level * 5;
 }
 
 void Pet::feed() {
@@ -78,7 +110,7 @@ void Pet::recordMedal(int up) {
 // 総合力＝ステータス＋育成日数＋実績の合算（すれちがいバトルで使用）
 uint16_t Pet::power() const {
   uint32_t p = st.satiety + st.happiness + st.energy;
-  p += st.eggs * 20 + st.friends * 5;
+  p += st.level * 15 + st.friends * 5;
   p += st.goldMedals * 10 + st.silverMedals * 5 + st.bronzeMedals * 2;
   p += st.ageMin / 1440 * 10;  // 育成日数×10
   return (uint16_t)(p > 65535 ? 65535 : p);
@@ -99,23 +131,4 @@ void Pet::meetFriend() {
 
 void Pet::shaken() {
   st.happiness = clamp100(st.happiness - 5);
-}
-
-bool Pet::checkEgg() {
-  return st.happiness >= 100 && st.satiety >= 80;
-}
-
-void Pet::layEgg() {
-  st.eggs++;
-  PetState keep = st;        // 累計の実績は次の世代へ引き継ぐ
-  st = PetState();           // ステータス(満腹/ごきげん/元気)を初期化
-  st.friends      = keep.friends;
-  st.eggs         = keep.eggs;
-  st.ageMin       = keep.ageMin;
-  st.totalFeeds   = keep.totalFeeds;
-  st.goldMedals   = keep.goldMedals;
-  st.silverMedals = keep.silverMedals;
-  st.bronzeMedals = keep.bronzeMedals;
-  st.battleWins   = keep.battleWins;
-  save();
 }

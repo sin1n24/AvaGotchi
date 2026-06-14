@@ -9,7 +9,7 @@ namespace {
 struct __attribute__((packed)) Packet {
   uint32_t magic;
   char name[16];
-  uint16_t eggs;
+  uint16_t level;
   uint16_t power;        // 総合力（バトル比較用）
   uint8_t  personality;  // 性格
   uint16_t hue;          // 体色(色相)
@@ -53,7 +53,7 @@ void onRecv(const uint8_t *mac, const uint8_t *data, int len) {
   if (recentlySeen(mac)) return;  // 5分以内の再会はノーカウント
   p.name[sizeof(p.name) - 1] = '\0';
   strncpy(newFriend.name, p.name, sizeof(newFriend.name));
-  newFriend.eggs        = p.eggs;
+  newFriend.level       = p.level;
   newFriend.power       = p.power;
   newFriend.personality = p.personality;
   newFriend.hue         = p.hue;
@@ -100,12 +100,12 @@ bool popNewFriend(FriendInfo &out) {
   return true;
 }
 
-void setMyInfo(const char *name, uint16_t eggs, uint16_t power, uint8_t personality, uint16_t hue) {
+void setMyInfo(const char *name, uint16_t level, uint16_t power, uint8_t personality, uint16_t hue) {
   if (name && name[0]) {
     strncpy(myPacket.name, name, sizeof(myPacket.name) - 1);
     myPacket.name[sizeof(myPacket.name) - 1] = '\0';
   }
-  myPacket.eggs        = eggs;
+  myPacket.level       = level;
   myPacket.power       = power;
   myPacket.personality = personality;
   myPacket.hue         = hue;

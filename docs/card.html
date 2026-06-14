@@ -41,7 +41,7 @@
     <div class="title" id="title">みならい</div>
     <div class="grid">
       <div class="stat"><b id="days">0</b><span>いくせい日数</span></div>
-      <div class="stat"><b id="eggs">0</b><span>たまご</span></div>
+      <div class="stat"><b id="level">1</b><span>レベル</span></div>
       <div class="stat"><b id="friends">0</b><span>ともだち</span></div>
       <div class="stat"><b id="wins">0</b><span>バトル勝利</span></div>
     </div>
@@ -57,14 +57,14 @@
 
     const hue = n("c", 200);
     const pIdx = Math.min(3, n("p", 0));
-    const days = n("d"), eggs = n("e"), friends = n("f"), wins = n("w");
+    const days = n("d"), level = n("l", 1), friends = n("f"), wins = n("w");
     const g = n("g"), s = n("s"), b = n("b");
 
     // 顔の色を個体色に
     document.getElementById("face").style.background = `hsl(${hue},70%,65%)`;
     document.getElementById("persona").textContent = P[pIdx];
     document.getElementById("days").textContent = days;
-    document.getElementById("eggs").textContent = eggs;
+    document.getElementById("level").textContent = level;
     document.getElementById("friends").textContent = friends;
     document.getElementById("wins").textContent = wins;
     document.getElementById("medals").textContent = `🥇${g} 🥈${s} 🥉${b}`;
@@ -73,14 +73,14 @@
     let title = "みならい";
     if (g >= 10) title = "ゲームマスター";
     else if (wins >= 10) title = "バトルおうじゃ";
-    else if (eggs >= 10) title = "でんせつの おやどり";
+    else if (level >= 20) title = "でんせつっち";
     else if (friends >= 20) title = "にんきもの";
-    else if (eggs >= 3) title = "いっかの たいちょう";
+    else if (level >= 10) title = "いちにんまえ";
     else if (friends >= 5) title = "ともだち おおい";
     document.getElementById("title").textContent = title;
 
     // Xシェア
-    const text = `うちの AvaGotchi(${P[pIdx]})は いくせい${days}日・たまご${eggs}・ともだち${friends}・🥇${g}🥈${s}🥉${b}！「${title}」 #AvaGotchi #ｽﾀｯｸﾁｬﾝ`;
+    const text = `うちの AvaGotchi(${P[pIdx]})は いくせい${days}日・レベル${level}・ともだち${friends}・🥇${g}🥈${s}🥉${b}！「${title}」 #AvaGotchi #ｽﾀｯｸﾁｬﾝ`;
     document.getElementById("share").href =
       "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) +
       "&url=" + encodeURIComponent("https://sin1.studio/AvaGotchi/");
