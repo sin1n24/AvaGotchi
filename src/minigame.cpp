@@ -344,15 +344,38 @@ int selectMenu(const char **menu, int count) {
   }
 }
 
+// ゲーム種別(0-5)を実行してごきげん上昇量を返す
+int runGame(int game) {
+  switch (game) {
+    case 0: return gameTiming();
+    case 1: return gameReaction();
+    case 2: return gameMash();
+    case 3: return gameLucky7();
+    case 4: return gameStare();
+    case 5: return gameBall();
+  }
+  return 0;
+}
+
 }  // namespace
 
 namespace MiniGame {
 
-int selectAndPlay(bool imuAvailable) {
-  // IMUがある機種(Gray等)だけ傾け操作の「エサとり」を加える
-  const char *menu[6] = {"5びょう あて", "はんしゃ しんけい", "れんだ", "ラッキー7", "がまんくらべ"};
-  int count = 5;
-  if (imuAvailable) menu[count++] = "かたむけて エサとり";
+int selectAndPlay(bool imuAvailable, int weatherGameIdx, const char *weatherGameName) {
+  const char *menu[7];
+  int gameMap[7];  // メニュー位置 → ゲーム種別
+  int count = 0;
+  // 天気限定ゲーム（取得済みなら先頭に）
+  if (weatherGameIdx >= 0 && weatherGameName) {
+    menu[count] = weatherGameName;
+    gameMap[count] = weatherGameIdx;
+    count++;
+  }
+  // 基本5種
+  const char *base[5] = {"5びょう あて", "はんしゃ しんけい", "れんだ", "ラッキー7", "がまんくらべ"};
+  for (int i = 0; i < 5; i++) { menu[count] = base[i]; gameMap[count] = i; count++; }
+  // IMU機(Gray等)は傾けゲームを追加
+  if (imuAvailable) { menu[count] = "かたむけて エサとり"; gameMap[count] = 5; count++; }
 
   int sel = selectMenu(menu, count);  // この中でavatar.suspend()
   if (sel < 0) {
@@ -361,19 +384,14 @@ int selectAndPlay(bool imuAvailable) {
     return -1;
   }
 
+  int game = gameMap[sel];
   int up = 0;
-  if (imuAvailable && sel == 5) {
-    up = gameBall();    // 傾けゲームはsuspendのままLCD直書き（メダルもLCDで表示）
+  if (game == 5) {
+    up = runGame(5);    // 傾けゲームはsuspendのままLCD直書き（メダルもLCDで表示）
     avatar.resume();
   } else {
     avatar.resume();    // 会話ゲームはAvatarを使う
-    switch (sel) {
-      case 0: up = gameTiming();   break;
-      case 1: up = gameReaction(); break;
-      case 2: up = gameMash();     break;
-      case 3: up = gameLucky7();   break;
-      case 4: up = gameStare();    break;
-    }
+    up = runGame(game);
     showMedal(up);      // 金・銀・銅で評価
   }
   clearSpeech();
