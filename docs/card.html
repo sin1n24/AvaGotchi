@@ -55,8 +55,14 @@
     .medal .cnt { font-size:1.1rem; font-weight:700; }
     .medal .lbl { font-size:.68rem; color:var(--muted); }
 
+    .btn-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
     .share { display:inline-block; background:#1d9bf0; color:#fff; text-decoration:none;
-             padding:12px 28px; border-radius:999px; font-weight:700; font-size:1rem; }
+             padding:12px 24px; border-radius:999px; font-weight:700; font-size:1rem; }
+    .dl    { display:inline-block; background:rgba(255,255,255,.1); color:var(--text);
+             border:1px solid rgba(255,255,255,.2); cursor:pointer;
+             padding:12px 24px; border-radius:999px; font-weight:700; font-size:1rem;
+             font-family:inherit; }
+    .dl:active { opacity:.7; }
     .home  { display:block; margin-top:14px; color:var(--muted); font-size:.82rem; }
   </style>
 </head>
@@ -97,10 +103,14 @@
       </div>
     </div>
 
-    <a class="share" id="share" href="#" target="_blank" rel="noopener">𝕏 でシェア</a>
+    <div class="btn-row">
+      <button class="dl" id="dlBtn">画像を保存</button>
+      <a class="share" id="share" href="#" target="_blank" rel="noopener">𝕏 でシェア</a>
+    </div>
     <a class="home" href="./">← AvaGotchi を書き込む</a>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     const PERSONALITY = ["くいしんぼう","あまえんぼう","げんきっこ","おっとり"];
     const FAVORITES   = [
@@ -154,6 +164,26 @@
     document.getElementById("share").href =
       "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) +
       "&url=" + encodeURIComponent("https://sin1.studio/AvaGotchi/");
+
+    // カード画像をダウンロード
+    document.getElementById("dlBtn").addEventListener("click", () => {
+      const btn = document.getElementById("dlBtn");
+      btn.textContent = "生成中…";
+      btn.disabled = true;
+      html2canvas(document.querySelector(".card"), {
+        backgroundColor: "#1b1f3b",
+        scale: 2,
+        useCORS: true,
+      }).then(canvas => {
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = `avagotchi_${PERSONALITY[pIdx]}_lv${level}.png`;
+        a.click();
+      }).finally(() => {
+        btn.textContent = "画像を保存";
+        btn.disabled = false;
+      });
+    });
   </script>
 </body>
 </html>
