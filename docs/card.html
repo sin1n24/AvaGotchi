@@ -15,48 +15,51 @@
             padding:28px 24px; max-width:400px; width:100%;
             box-shadow:0 16px 48px rgba(0,0,0,.45); text-align:center; }
 
-    /* タイトル */
-    .card-title { font-size:.75rem; letter-spacing:.12em; color:var(--muted);
-                  text-transform:uppercase; margin-bottom:20px; }
+    /* タイトル — 一番大きく */
+    .card-title { font-size:1.6rem; font-weight:900; letter-spacing:.04em;
+                  margin-bottom:20px; line-height:1.2; }
 
-    /* 顔（□輪郭・○目・―口・3ボタン） */
-    .face-wrap { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:16px; }
-    .face { width:96px; height:96px; border-radius:18px; position:relative;
-            border:3px solid rgba(0,0,0,.25); flex-shrink:0; }
-    .eye { width:13px; height:13px; border-radius:50%; position:absolute; top:28px; }
-    .eye.l { left:19px; } .eye.r { right:19px; }
-    .mouth { width:34px; height:3px; border-radius:2px;
-             position:absolute; bottom:20px; left:50%; transform:translateX(-50%); }
+    /* 顔：外□ が内□（顔）と3ボタンを内包 */
+    .face-wrap { display:flex; justify-content:center; margin-bottom:16px; }
+    .face-outer { border:3px solid var(--face-color,#888); border-radius:14px;
+                  padding:8px 10px 8px; display:inline-flex;
+                  flex-direction:column; align-items:center; gap:7px; }
+    .face-inner { width:88px; height:88px; border-radius:12px;
+                  border:3px solid var(--face-color,#888);
+                  position:relative; }
+    .eye { width:13px; height:13px; border-radius:50%; position:absolute; top:24px; }
+    .eye.l { left:17px; } .eye.r { right:17px; }
+    .mouth { width:32px; height:3px; border-radius:2px;
+             position:absolute; bottom:18px; left:50%; transform:translateX(-50%); }
     .btns { display:flex; gap:7px; }
-    .btn-sq { width:18px; height:13px; border:2px solid rgba(255,255,255,.22); border-radius:3px; }
+    .btn-sq { width:18px; height:12px; border:2px solid rgba(255,255,255,.3); border-radius:3px; }
 
     /* キャラ情報 */
-    .persona { font-size:1.15rem; font-weight:700; color:#6cc6ff; margin-bottom:4px; }
-    .fav     { font-size:.9rem; color:var(--muted); margin-bottom:6px; }
+    .persona { font-size:1.05rem; font-weight:700; color:#6cc6ff; margin-bottom:4px; }
+    .fav     { font-size:.88rem; color:var(--muted); margin-bottom:6px; }
     .achieve { display:inline-block; background:rgba(108,198,255,.14); color:#6cc6ff;
                border-radius:999px; padding:4px 16px; font-size:.9rem; margin-bottom:20px; }
 
     /* ステータスグリッド */
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
     .stat { background:rgba(255,255,255,.055); border-radius:14px; padding:11px 8px; }
-    .stat b { display:block; font-size:1.5rem; line-height:1.1; }
+    .stat b { display:block; font-size:1.45rem; line-height:1.1; }
     .stat span { color:var(--muted); font-size:.72rem; }
 
-    /* ゲーム成績（ラベル付き） */
-    .medals-wrap { margin-bottom:14px; }
+    /* ゲーム成績 */
+    .medals-wrap { margin-bottom:12px; }
     .medals-label { font-size:.75rem; color:var(--muted); margin-bottom:6px; }
-    .medals-row { display:flex; justify-content:center; gap:10px; }
-    .medal { background:rgba(255,255,255,.05); border-radius:12px; padding:9px 14px;
+    .medals-row { display:flex; justify-content:center; gap:8px; }
+    .medal { background:rgba(255,255,255,.05); border-radius:12px; padding:9px 12px;
              display:flex; flex-direction:column; align-items:center; gap:2px; flex:1; }
-    .medal .ico { font-size:1.4rem; }
-    .medal .cnt { font-size:1.15rem; font-weight:700; }
+    .medal .ico { font-size:1.35rem; }
+    .medal .cnt { font-size:1.1rem; font-weight:700; }
     .medal .lbl { font-size:.68rem; color:var(--muted); }
 
-    /* バトル */
+    /* ちえくらべ */
     .battle { font-size:.85rem; color:var(--muted); margin-bottom:20px; }
     .battle b { color:var(--text); font-size:1rem; }
 
-    /* シェアボタン */
     .share { display:inline-block; background:#1d9bf0; color:#fff; text-decoration:none;
              padding:12px 28px; border-radius:999px; font-weight:700; font-size:1rem; }
     .home  { display:block; margin-top:14px; color:var(--muted); font-size:.82rem; }
@@ -67,13 +70,15 @@
     <div class="card-title">じまんカード：うちのあばごっち</div>
 
     <div class="face-wrap">
-      <div class="face" id="face">
-        <div class="eye l" id="eyeL"></div>
-        <div class="eye r" id="eyeR"></div>
-        <div class="mouth" id="mouth"></div>
-      </div>
-      <div class="btns">
-        <div class="btn-sq"></div><div class="btn-sq"></div><div class="btn-sq"></div>
+      <div class="face-outer" id="faceOuter">
+        <div class="face-inner" id="faceInner">
+          <div class="eye l" id="eyeL"></div>
+          <div class="eye r" id="eyeR"></div>
+          <div class="mouth" id="mouth"></div>
+        </div>
+        <div class="btns">
+          <div class="btn-sq"></div><div class="btn-sq"></div><div class="btn-sq"></div>
+        </div>
       </div>
     </div>
 
@@ -85,7 +90,7 @@
       <div class="stat"><b id="days">0</b><span>そだてた日数</span></div>
       <div class="stat"><b id="level">1</b><span>レベル</span></div>
       <div class="stat"><b id="friends">0</b><span>ともだち</span></div>
-      <div class="stat"><b id="wins">0</b><span>バトル勝利</span></div>
+      <div class="stat"><b id="wins">0</b><span>ちえくらべ勝利</span></div>
     </div>
 
     <div class="medals-wrap">
@@ -97,7 +102,7 @@
       </div>
     </div>
 
-    <div class="battle">すれちがいバトル：<b id="winsText">0しょうり</b></div>
+    <div class="battle">ちえくらべ：<b id="winsText">0しょうり</b></div>
 
     <a class="share" id="share" href="#" target="_blank" rel="noopener">𝕏 でシェア</a>
     <a class="home" href="./">← AvaGotchi を書き込む</a>
@@ -105,24 +110,28 @@
 
   <script>
     const PERSONALITY = ["くいしんぼう","あまえんぼう","げんきっこ","おっとり"];
-    const FAVORITES   = ["おさかな","おにく","くだもの","おこめ","おやつ"];
+    const FAVORITES   = [
+      "おさかな","おにく","くだもの","おこめ","おやつ",
+      "ねじ","でんち","はんだ","かみ","ぼると",
+      "アルゴリズム","プラスチック",
+    ];
 
-    const q    = new URLSearchParams(location.hash.slice(1));
-    const ni   = (k, d=0) => parseInt(q.get(k) ?? d, 10) || 0;
-    const hue  = ni("c", 200);
-    const pIdx = Math.min(3, ni("p", 0));
-    const favIdx = Math.min(4, ni("fav", 0));
+    const q      = new URLSearchParams(location.hash.slice(1));
+    const ni     = (k, d=0) => parseInt(q.get(k) ?? d, 10) || 0;
+    const hue    = ni("c", 200);
+    const pIdx   = Math.min(3, ni("p", 0));
+    const favIdx = Math.min(FAVORITES.length - 1, ni("fav", 0));
     const days = ni("d"), level = ni("l",1), friends = ni("f"), wins = ni("w");
     const g = ni("g"), s = ni("s"), b = ni("b");
 
-    // 顔：体色ベース、目・口は同色系の暗色
+    // 顔色を CSS 変数で設定（outer・inner 枠・目・口を同系色に）
     const faceHsl = `hsl(${hue},65%,62%)`;
     const darkHsl = `hsl(${hue},50%,22%)`;
-    document.getElementById("face").style.background = faceHsl;
+    document.documentElement.style.setProperty("--face-color", faceHsl);
+    document.getElementById("faceInner").style.background = faceHsl;
     ["eyeL","eyeR","mouth"].forEach(id =>
       document.getElementById(id).style.background = darkHsl);
 
-    // テキスト
     document.getElementById("persona").textContent  = "せいかく：" + PERSONALITY[pIdx];
     document.getElementById("fav").textContent      = "すきなもの：" + FAVORITES[favIdx];
     document.getElementById("days").textContent     = days;
@@ -137,18 +146,18 @@
     // 称号
     let title = "みならい";
     if      (g >= 10)       title = "ゲームマスター";
-    else if (wins >= 10)    title = "バトルおうじゃ";
+    else if (wins >= 10)    title = "ちえくらべおうじゃ";
     else if (level >= 20)   title = "でんせつっち";
     else if (friends >= 20) title = "にんきもの";
     else if (level >= 10)   title = "いちにんまえ";
     else if (friends >= 5)  title = "ともだち おおい";
     document.getElementById("achieve").textContent = "「" + title + "」";
 
-    // Xシェアテキスト
+    // Xシェア
     const text =
       `うちのあばごっち（${PERSONALITY[pIdx]}・すき:${FAVORITES[favIdx]}）` +
       `そだて${days}日 Lv${level} ともだち${friends}ひき ` +
-      `🥇${g}🥈${s}🥉${b} バトル${wins}しょうり 「${title}」` +
+      `🥇${g}🥈${s}🥉${b} ちえくらべ${wins}しょうり 「${title}」` +
       ` #AvaGotchi #ｽﾀｯｸﾁｬﾝ`;
     document.getElementById("share").href =
       "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) +
