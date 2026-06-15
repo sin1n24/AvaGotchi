@@ -19,20 +19,19 @@
     .card-title { font-size:1.6rem; font-weight:900; letter-spacing:.04em;
                   margin-bottom:20px; line-height:1.2; }
 
-    /* 顔：外□ が内□（顔）と3ボタンを内包 */
+    /* 顔：外□（正方形）が内□（横長）＋3ボタンを内包 */
     .face-wrap { display:flex; justify-content:center; margin-bottom:16px; }
-    .face-outer { border:3px solid var(--face-color,#888); border-radius:14px;
-                  padding:8px 10px 8px; display:inline-flex;
-                  flex-direction:column; align-items:center; gap:7px; }
-    .face-inner { width:88px; height:88px; border-radius:12px;
-                  border:3px solid var(--face-color,#888);
-                  position:relative; }
-    .eye { width:13px; height:13px; border-radius:50%; position:absolute; top:24px; }
-    .eye.l { left:17px; } .eye.r { right:17px; }
-    .mouth { width:32px; height:3px; border-radius:2px;
-             position:absolute; bottom:18px; left:50%; transform:translateX(-50%); }
-    .btns { display:flex; gap:7px; }
-    .btn-sq { width:18px; height:12px; border:2px solid rgba(255,255,255,.3); border-radius:3px; }
+    .face-outer { width:116px; height:116px; border:3px solid var(--face-color,#888);
+                  border-radius:14px; display:flex; flex-direction:column;
+                  align-items:center; justify-content:center; gap:8px; }
+    .face-inner { width:96px; height:52px; border-radius:8px;
+                  border:3px solid var(--face-color,#888); position:relative; }
+    .eye { width:12px; height:12px; border-radius:50%; position:absolute; top:12px; }
+    .eye.l { left:15px; } .eye.r { right:15px; }
+    .mouth { width:30px; height:3px; border-radius:2px;
+             position:absolute; bottom:10px; left:50%; transform:translateX(-50%); }
+    .btns { display:flex; gap:8px; }
+    .btn-sq { width:20px; height:13px; border:2px solid rgba(255,255,255,.3); border-radius:3px; }
 
     /* キャラ情報 */
     .persona { font-size:1.05rem; font-weight:700; color:#6cc6ff; margin-bottom:4px; }
@@ -55,10 +54,6 @@
     .medal .ico { font-size:1.35rem; }
     .medal .cnt { font-size:1.1rem; font-weight:700; }
     .medal .lbl { font-size:.68rem; color:var(--muted); }
-
-    /* ちえくらべ */
-    .battle { font-size:.85rem; color:var(--muted); margin-bottom:20px; }
-    .battle b { color:var(--text); font-size:1rem; }
 
     .share { display:inline-block; background:#1d9bf0; color:#fff; text-decoration:none;
              padding:12px 28px; border-radius:999px; font-weight:700; font-size:1rem; }
@@ -102,8 +97,6 @@
       </div>
     </div>
 
-    <div class="battle">ちえくらべ：<b id="winsText">0しょうり</b></div>
-
     <a class="share" id="share" href="#" target="_blank" rel="noopener">𝕏 でシェア</a>
     <a class="home" href="./">← AvaGotchi を書き込む</a>
   </div>
@@ -138,7 +131,6 @@
     document.getElementById("level").textContent    = level;
     document.getElementById("friends").textContent  = friends;
     document.getElementById("wins").textContent     = wins;
-    document.getElementById("winsText").textContent = wins + "しょうり";
     document.getElementById("gold").textContent     = g;
     document.getElementById("silver").textContent   = s;
     document.getElementById("bronze").textContent   = b;
