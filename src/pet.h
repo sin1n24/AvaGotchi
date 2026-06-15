@@ -11,6 +11,7 @@ struct PetState {
   uint16_t exp     = 0;  // 現在レベル内の経験値
   uint32_t ageMin  = 0;  // 年齢(分)
   bool sleeping = false; // おやすみ中
+  bool tutorialDone = false; // 初回起動時のつかいかた説明を見せたか
   // --- 実績カウンタ（世代交代しても引き継ぐ累計値） ---
   uint16_t totalFeeds   = 0;  // 累計ごはん回数
   uint16_t goldMedals   = 0;  // 金メダル数

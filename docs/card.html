@@ -3,84 +3,153 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AvaGotchi じまんカード</title>
+  <title>じまんカード：うちのあばごっち</title>
   <style>
     :root { --bg:#0f1226; --card:#1b1f3b; --text:#eef1ff; --muted:#aab2d5; }
-    * { box-sizing:border-box; }
-    body { margin:0; font-family:-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
-           background:radial-gradient(1000px 500px at 70% -10%,#2a2f63,var(--bg) 55%); color:var(--text);
-           min-height:100vh; display:flex; justify-content:center; align-items:center; padding:24px; }
-    .card { background:var(--card); border:1px solid rgba(255,255,255,.1); border-radius:22px;
-            padding:28px; max-width:420px; width:100%; box-shadow:0 14px 44px rgba(0,0,0,.4); text-align:center; }
-    .face { width:120px; height:120px; border-radius:50%; margin:0 auto 14px; position:relative; }
-    .eye { width:16px; height:16px; background:#0f1226; border-radius:50%; position:absolute; top:46px; }
-    .eye.l{ left:32px; } .eye.r{ right:32px; }
-    .mouth { width:40px; height:18px; border-bottom:5px solid #0f1226; border-radius:0 0 40px 40px;
-             position:absolute; left:40px; top:72px; }
-    h1 { margin:.2em 0; font-size:1.5rem; }
-    .persona { color:#6cc6ff; font-weight:700; margin-bottom:4px; }
-    .title { display:inline-block; background:rgba(108,198,255,.15); color:#6cc6ff;
-             border-radius:999px; padding:4px 14px; font-size:.9rem; margin:6px 0 16px; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0 18px; }
-    .stat { background:rgba(255,255,255,.05); border-radius:12px; padding:10px; }
-    .stat b { display:block; font-size:1.4rem; }
-    .stat span { color:var(--muted); font-size:.8rem; }
-    .medals { font-size:1.3rem; margin-bottom:18px; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
+           background:radial-gradient(900px 500px at 65% -10%,#2a2f63,var(--bg) 60%);
+           color:var(--text); min-height:100vh;
+           display:flex; justify-content:center; align-items:center; padding:24px; }
+    .card { background:var(--card); border:1px solid rgba(255,255,255,.1); border-radius:24px;
+            padding:28px 24px; max-width:400px; width:100%;
+            box-shadow:0 16px 48px rgba(0,0,0,.45); text-align:center; }
+
+    /* タイトル */
+    .card-title { font-size:.75rem; letter-spacing:.12em; color:var(--muted);
+                  text-transform:uppercase; margin-bottom:20px; }
+
+    /* 顔（□輪郭・○目・―口・3ボタン） */
+    .face-wrap { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:16px; }
+    .face { width:96px; height:96px; border-radius:18px; position:relative;
+            border:3px solid rgba(0,0,0,.25); flex-shrink:0; }
+    .eye { width:13px; height:13px; border-radius:50%; position:absolute; top:28px; }
+    .eye.l { left:19px; } .eye.r { right:19px; }
+    .mouth { width:34px; height:3px; border-radius:2px;
+             position:absolute; bottom:20px; left:50%; transform:translateX(-50%); }
+    .btns { display:flex; gap:7px; }
+    .btn-sq { width:18px; height:13px; border:2px solid rgba(255,255,255,.22); border-radius:3px; }
+
+    /* キャラ情報 */
+    .persona { font-size:1.15rem; font-weight:700; color:#6cc6ff; margin-bottom:4px; }
+    .fav     { font-size:.9rem; color:var(--muted); margin-bottom:6px; }
+    .achieve { display:inline-block; background:rgba(108,198,255,.14); color:#6cc6ff;
+               border-radius:999px; padding:4px 16px; font-size:.9rem; margin-bottom:20px; }
+
+    /* ステータスグリッド */
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .stat { background:rgba(255,255,255,.055); border-radius:14px; padding:11px 8px; }
+    .stat b { display:block; font-size:1.5rem; line-height:1.1; }
+    .stat span { color:var(--muted); font-size:.72rem; }
+
+    /* ゲーム成績（ラベル付き） */
+    .medals-wrap { margin-bottom:14px; }
+    .medals-label { font-size:.75rem; color:var(--muted); margin-bottom:6px; }
+    .medals-row { display:flex; justify-content:center; gap:10px; }
+    .medal { background:rgba(255,255,255,.05); border-radius:12px; padding:9px 14px;
+             display:flex; flex-direction:column; align-items:center; gap:2px; flex:1; }
+    .medal .ico { font-size:1.4rem; }
+    .medal .cnt { font-size:1.15rem; font-weight:700; }
+    .medal .lbl { font-size:.68rem; color:var(--muted); }
+
+    /* バトル */
+    .battle { font-size:.85rem; color:var(--muted); margin-bottom:20px; }
+    .battle b { color:var(--text); font-size:1rem; }
+
+    /* シェアボタン */
     .share { display:inline-block; background:#1d9bf0; color:#fff; text-decoration:none;
-             padding:12px 26px; border-radius:999px; font-weight:700; }
-    a.home { display:block; margin-top:18px; color:var(--muted); font-size:.85rem; }
+             padding:12px 28px; border-radius:999px; font-weight:700; font-size:1rem; }
+    .home  { display:block; margin-top:14px; color:var(--muted); font-size:.82rem; }
   </style>
 </head>
 <body>
-  <div class="card" id="card">
-    <div class="face" id="face">
-      <div class="eye l"></div><div class="eye r"></div><div class="mouth"></div>
+  <div class="card">
+    <div class="card-title">じまんカード：うちのあばごっち</div>
+
+    <div class="face-wrap">
+      <div class="face" id="face">
+        <div class="eye l" id="eyeL"></div>
+        <div class="eye r" id="eyeR"></div>
+        <div class="mouth" id="mouth"></div>
+      </div>
+      <div class="btns">
+        <div class="btn-sq"></div><div class="btn-sq"></div><div class="btn-sq"></div>
+      </div>
     </div>
-    <div class="persona" id="persona">—</div>
-    <h1>うちの AvaGotchi</h1>
-    <div class="title" id="title">みならい</div>
+
+    <div class="persona" id="persona">せいかく：—</div>
+    <div class="fav"     id="fav">すきなもの：—</div>
+    <div class="achieve" id="achieve">みならい</div>
+
     <div class="grid">
-      <div class="stat"><b id="days">0</b><span>いくせい日数</span></div>
+      <div class="stat"><b id="days">0</b><span>そだてた日数</span></div>
       <div class="stat"><b id="level">1</b><span>レベル</span></div>
       <div class="stat"><b id="friends">0</b><span>ともだち</span></div>
       <div class="stat"><b id="wins">0</b><span>バトル勝利</span></div>
     </div>
-    <div class="medals" id="medals">🥇0 🥈0 🥉0</div>
-    <a class="share" id="share" href="#" target="_blank" rel="noopener">Xでシェア</a>
+
+    <div class="medals-wrap">
+      <div class="medals-label">ゲーム成績</div>
+      <div class="medals-row">
+        <div class="medal"><div class="ico">🥇</div><div class="cnt" id="gold">0</div><div class="lbl">きんメダル</div></div>
+        <div class="medal"><div class="ico">🥈</div><div class="cnt" id="silver">0</div><div class="lbl">ぎんメダル</div></div>
+        <div class="medal"><div class="ico">🥉</div><div class="cnt" id="bronze">0</div><div class="lbl">どうメダル</div></div>
+      </div>
+    </div>
+
+    <div class="battle">すれちがいバトル：<b id="winsText">0しょうり</b></div>
+
+    <a class="share" id="share" href="#" target="_blank" rel="noopener">𝕏 でシェア</a>
     <a class="home" href="./">← AvaGotchi を書き込む</a>
   </div>
 
   <script>
-    const P = ["くいしんぼう", "あまえんぼう", "げんきっこ", "おっとり"];
-    const q = new URLSearchParams(location.hash.slice(1));
-    const n = (k, d = 0) => parseInt(q.get(k) ?? d, 10) || 0;
+    const PERSONALITY = ["くいしんぼう","あまえんぼう","げんきっこ","おっとり"];
+    const FAVORITES   = ["おさかな","おにく","くだもの","おこめ","おやつ"];
 
-    const hue = n("c", 200);
-    const pIdx = Math.min(3, n("p", 0));
-    const days = n("d"), level = n("l", 1), friends = n("f"), wins = n("w");
-    const g = n("g"), s = n("s"), b = n("b");
+    const q    = new URLSearchParams(location.hash.slice(1));
+    const ni   = (k, d=0) => parseInt(q.get(k) ?? d, 10) || 0;
+    const hue  = ni("c", 200);
+    const pIdx = Math.min(3, ni("p", 0));
+    const favIdx = Math.min(4, ni("fav", 0));
+    const days = ni("d"), level = ni("l",1), friends = ni("f"), wins = ni("w");
+    const g = ni("g"), s = ni("s"), b = ni("b");
 
-    // 顔の色を個体色に
-    document.getElementById("face").style.background = `hsl(${hue},70%,65%)`;
-    document.getElementById("persona").textContent = P[pIdx];
-    document.getElementById("days").textContent = days;
-    document.getElementById("level").textContent = level;
-    document.getElementById("friends").textContent = friends;
-    document.getElementById("wins").textContent = wins;
-    document.getElementById("medals").textContent = `🥇${g} 🥈${s} 🥉${b}`;
+    // 顔：体色ベース、目・口は同色系の暗色
+    const faceHsl = `hsl(${hue},65%,62%)`;
+    const darkHsl = `hsl(${hue},50%,22%)`;
+    document.getElementById("face").style.background = faceHsl;
+    ["eyeL","eyeR","mouth"].forEach(id =>
+      document.getElementById(id).style.background = darkHsl);
 
-    // 称号（デバイス側と同じ基準）
+    // テキスト
+    document.getElementById("persona").textContent  = "せいかく：" + PERSONALITY[pIdx];
+    document.getElementById("fav").textContent      = "すきなもの：" + FAVORITES[favIdx];
+    document.getElementById("days").textContent     = days;
+    document.getElementById("level").textContent    = level;
+    document.getElementById("friends").textContent  = friends;
+    document.getElementById("wins").textContent     = wins;
+    document.getElementById("winsText").textContent = wins + "しょうり";
+    document.getElementById("gold").textContent     = g;
+    document.getElementById("silver").textContent   = s;
+    document.getElementById("bronze").textContent   = b;
+
+    // 称号
     let title = "みならい";
-    if (g >= 10) title = "ゲームマスター";
-    else if (wins >= 10) title = "バトルおうじゃ";
-    else if (level >= 20) title = "でんせつっち";
+    if      (g >= 10)       title = "ゲームマスター";
+    else if (wins >= 10)    title = "バトルおうじゃ";
+    else if (level >= 20)   title = "でんせつっち";
     else if (friends >= 20) title = "にんきもの";
-    else if (level >= 10) title = "いちにんまえ";
-    else if (friends >= 5) title = "ともだち おおい";
-    document.getElementById("title").textContent = title;
+    else if (level >= 10)   title = "いちにんまえ";
+    else if (friends >= 5)  title = "ともだち おおい";
+    document.getElementById("achieve").textContent = "「" + title + "」";
 
-    // Xシェア
-    const text = `うちの AvaGotchi(${P[pIdx]})は いくせい${days}日・レベル${level}・ともだち${friends}・🥇${g}🥈${s}🥉${b}！「${title}」 #AvaGotchi #ｽﾀｯｸﾁｬﾝ`;
+    // Xシェアテキスト
+    const text =
+      `うちのあばごっち（${PERSONALITY[pIdx]}・すき:${FAVORITES[favIdx]}）` +
+      `そだて${days}日 Lv${level} ともだち${friends}ひき ` +
+      `🥇${g}🥈${s}🥉${b} バトル${wins}しょうり 「${title}」` +
+      ` #AvaGotchi #ｽﾀｯｸﾁｬﾝ`;
     document.getElementById("share").href =
       "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) +
       "&url=" + encodeURIComponent("https://sin1.studio/AvaGotchi/");

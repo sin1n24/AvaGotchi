@@ -13,6 +13,7 @@ void Pet::load() {
   st.level     = prefs.getUChar("lvl", 1);
   st.exp       = prefs.getUShort("exp", 0);
   st.ageMin    = prefs.getULong("age", 0);
+  st.tutorialDone = prefs.getBool("tut", false);
   st.totalFeeds   = prefs.getUShort("fed", 0);
   st.goldMedals   = prefs.getUShort("gld", 0);
   st.silverMedals = prefs.getUShort("slv", 0);
@@ -30,6 +31,7 @@ void Pet::save() {
   prefs.putUChar("lvl", st.level);
   prefs.putUShort("exp", st.exp);
   prefs.putULong("age", st.ageMin);
+  prefs.putBool("tut", st.tutorialDone);
   prefs.putUShort("fed", st.totalFeeds);
   prefs.putUShort("gld", st.goldMedals);
   prefs.putUShort("slv", st.silverMedals);

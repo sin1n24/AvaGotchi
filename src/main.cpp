@@ -274,7 +274,6 @@ void levelUpEvent(int newLevel) {
   switch (newLevel) {           // 節目で機能解放（最初はかんたんに上がる）
     case 2: unlock = "あそべる ゲームが\nふえたよ！";   break;
     case 3: unlock = "すれちがい かいほう！";           break;
-    case 4: unlock = "じまんカード かいほう！";         break;
     case 5: unlock = "ぜんゲーム かいほう！";           break;
   }
   if (unlock) { say(unlock, 4000); delay(3500); }
@@ -324,8 +323,8 @@ void showQrCard() {
 
   char url[200];
   snprintf(url, sizeof(url),
-           "https://sin1.studio/AvaGotchi/card.html#p=%d&c=%u&d=%lu&l=%u&f=%u&g=%u&s=%u&b=%u&w=%u",
-           pet.personality, gHue, (unsigned long)(pet.st.ageMin / 1440),
+           "https://sin1.studio/AvaGotchi/card.html#p=%d&c=%u&fav=%d&d=%lu&l=%u&f=%u&g=%u&s=%u&b=%u&w=%u",
+           pet.personality, gHue, gFavorite, (unsigned long)(pet.st.ageMin / 1440),
            pet.st.level, pet.st.friends, pet.st.goldMedals, pet.st.silverMedals,
            pet.st.bronzeMedals, pet.st.battleWins);
   lcd.qrcode(url, 8, 44, 140, 7);  // 左側にQR(140px)
@@ -335,7 +334,7 @@ void showQrCard() {
   lcd.setFont(&fonts::efontJA_16);
   lcd.drawString("じまんカード", 8, 8);
 
-  lcd.setFont(&fonts::efontJA_12);  // 右側ステータス（画面右端からはみ出さない短い表記）
+  lcd.setFont(&fonts::efontJA_12);  // 右側ステータス
   int x = 156, y = 44;
   lcd.drawString(String(PERSONALITY_NAMES[pet.personality]), x, y);  y += 22;
   lcd.drawString("すき:" + String(FAVORITES[gFavorite]), x, y);      y += 22;
@@ -345,7 +344,7 @@ void showQrCard() {
   lcd.drawString("金" + String(pet.st.goldMedals) + " 銀" + String(pet.st.silverMedals) +
                      " 銅" + String(pet.st.bronzeMedals), x, y);
 
-  lcd.setTextColor(TFT_CYAN, TFT_BLACK);  // 称号は下部に全幅で
+  lcd.setTextColor(TFT_CYAN, TFT_BLACK);
   lcd.drawString("「" + String(achievementTitle()) + "」", 8, 196);
   lcd.setFont(&fonts::efontJA_10);
   lcd.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -359,6 +358,97 @@ void showQrCard() {
     delay(20);
   }
   avatar.resume();
+}
+
+// ---- 初回起動時のつかいかた説明 ----
+void showTutorial() {
+  avatar.setExpression(Expression::Happy);
+  say("Aながおし:\nじまんカード(QR)！", 3500);    delay(3000);
+  say("A:ごはん B:ゲーム\nC:ステータス", 3500);   delay(3000);
+  say("たのしんでね！", 2500);                    delay(2000);
+}
+
+// ---- デモモード（A+C同時長押し1.5秒で起動。初めての人に機能を体験させる） ----
+void runDemo() {
+  // Aボタンを待つ（needHold=true で長押し判定）
+  auto waitA = [](uint32_t ms, bool needHold) -> bool {
+    uint32_t t0 = millis();
+    while (millis() - t0 < ms) {
+      M5.update();
+      if (needHold ? M5.BtnA.wasHold() : M5.BtnA.wasClicked()) return true;
+      delay(20);
+    }
+    return false;
+  };
+
+  // --- 1. イントロ ---
+  avatar.setExpression(Expression::Happy);
+  say("デモモード！\nよろしくね", 3000);          delay(2500);
+  say("きもちが かおに でるよ\nそだててね！", 3500); delay(3000);
+
+  // --- 2. ごはん体験 ---
+  say("A:ごはんを あげてみて！", 3000);
+  waitA(7000, false);
+  pet.st.satiety = 50;
+  pet.feed();
+  avatar.setExpression(Expression::Happy);
+  say("もぐもぐ！", 2500);
+  for (int i = 0; i < 4; i++) {
+    avatar.setMouthOpenRatio(0.8f); delay(120);
+    avatar.setMouthOpenRatio(0.0f); delay(120);
+  }
+  delay(2000);
+
+  // --- 3. ステータス ---
+  say("C:ステータスだよ", 2500); delay(2000);
+  showStatus();
+
+  // --- 4. IMUインタラクション（搭載機のみ） ---
+  if (hasImu) {
+    say("かたむけると\nかおも かたむくよ", 3000); delay(2500);
+  }
+
+  // --- 5. ミニゲーム ---
+  say("B:ゲームで あそぼう！", 3000); delay(2500);
+  {
+    int gainedExp = 0;
+    int up = MiniGame::selectAndPlay(hasImu, -1, nullptr, 3, &gainedExp);
+    if (up >= 0) {
+      pet.play(up);
+      pet.recordMedal(up);
+      int ups = pet.addExp(gainedExp);
+      say(up >= 25 ? "たのしかった〜!!" : up >= 10 ? "また あそぼ!" : "ざんねん…");
+      if (ups > 0) { delay(2800); levelUpEvent(pet.st.level); }
+    }
+  }
+  delay(1000);
+
+  // --- 6. 強制レベルアップ ---
+  say("とくべつ レベルアップ！", 3000); delay(2500);
+  {
+    int fromLevel = pet.st.level;
+    pet.st.exp = 0;
+    int ups = pet.addExp(500);
+    pet.save();
+    int shown = 0;
+    for (int lv = fromLevel + 1; lv <= (int)pet.st.level && shown < 3; lv++, shown++) {
+      levelUpEvent(lv);
+    }
+    if (ups == 0) {
+      avatar.setExpression(Expression::Happy);
+      say("たかレベルだね！すごい！", 3000); delay(2500);
+    }
+  }
+
+  // --- 7. じまんカード ---
+  say("Aながおし:\nじまんカード！", 3000);
+  waitA(10000, true);
+  showQrCard();
+
+  // --- 8. 締め ---
+  avatar.setExpression(Expression::Happy);
+  say("たのしんでね！", 2500); delay(2000);
+  say(greetingByTime());
 }
 
 void setup() {
@@ -403,6 +493,15 @@ void setup() {
   applyWeatherPalette();
   say(greetingByTime());  // 時間帯に応じたあいさつ（独り言タイマーもここで起点に）
 
+  // 初回起動時だけ、ボタンの使い方とじまんカードを説明する
+  if (!pet.st.tutorialDone) {
+    delay(2500);
+    showTutorial();
+    pet.st.tutorialDone = true;
+    pet.save();
+    say(greetingByTime());  // 説明のあと、あらためてあいさつ
+  }
+
   StreetPass::begin();
   updateMyInfo();
   lastDecayMs = millis();
@@ -412,12 +511,26 @@ void loop() {
   M5.update();
   const uint32_t now = millis();
 
+  // --- A+C 同時長押し 1.5秒 → デモモード ---
+  {
+    static uint32_t demoHoldStart = 0;
+    if (M5.BtnA.isHolding() && M5.BtnC.isHolding()) {
+      if (demoHoldStart == 0) demoHoldStart = now;
+      else if (now - demoHoldStart >= 1500) {
+        demoHoldStart = 0;
+        runDemo();
+        return;
+      }
+    } else {
+      demoHoldStart = 0;
+    }
+  }
+
   // --- ボタン操作 ---
   // 押下を先に拾っておく（ゲーム等のブロッキング処理から戻った後の時刻で更新するため）
   bool anyBtn = M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed();
-  if (M5.BtnA.wasHold()) {              // じまんカード(QR)を表示（Lv4で解放）
-    if (pet.st.level >= 4) showQrCard();
-    else say("レベル4で\nじまんカード！", 2500);
+  if (M5.BtnA.wasHold() && !M5.BtnC.isHolding()) {  // じまんカード（C同時押し中は除外）
+    showQrCard();
   } else if (M5.BtnA.wasClicked()) {    // ごはん
     if (pet.st.sleeping) {
       pet.st.sleeping = false;          // 起こしてしまった
@@ -469,7 +582,7 @@ void loop() {
       if (ups > 0) { delay(2800); levelUpEvent(pet.st.level); }  // 結果を見せてから昇格演出
     }
   }
-  if (M5.BtnC.wasHold()) {              // 天気更新
+  if (M5.BtnC.wasHold() && !M5.BtnA.isHolding()) {  // 天気更新（A同時押し中は除外）
     fetchWeather();
   } else if (M5.BtnC.wasClicked()) {    // ステータス
     showStatus();
