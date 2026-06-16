@@ -63,16 +63,7 @@ int Pet::decay() {
   // おなかが空きすぎるとごきげんも下がる
   if (st.satiety < 20) st.happiness = clamp100(st.happiness - 3);
 
-  // --- 経験値：満腹・ごきげん・元気が高いほど貯まる（快適に過ごすと成長） ---
-  // 寝ている間は成長しない（夢の中ではレベルアップしない）
-  int gain = 0;
-  if (!st.sleeping) {
-    if (st.satiety   >= 70) gain++;
-    if (st.happiness >= 70) gain++;
-    if (st.energy    >= 70) gain++;
-    if (gain >= 3) gain++;  // すべて好調ならボーナス（最大4/分）
-  }
-  return addExp(gain);
+  return 0;  // 経験値はゲームなどユーザー操作時のみ加算（decay では増やさない）
 }
 
 // 経験値を加算し、必要量に達したらレベルアップ。上がったレベル数を返す。
