@@ -516,13 +516,21 @@ void loop() {
   M5.update();
   const uint32_t now = millis();
 
-  // --- A+C 同時長押し 1.5秒 → デモモード ---
+  // --- A+C 同時長押し 1.5秒 → デモ待機 → 何かボタンで開始 ---
   {
     static uint32_t demoHoldStart = 0;
     if (M5.BtnA.isHolding() && M5.BtnC.isHolding()) {
       if (demoHoldStart == 0) demoHoldStart = now;
       else if (now - demoHoldStart >= 1500) {
         demoHoldStart = 0;
+        // 待機状態：ボタンが押されるまで待つ
+        say("ボタンを おしてね！", 60000);
+        while (true) {
+          M5.update();
+          if (M5.BtnA.wasClicked() || M5.BtnB.wasClicked() || M5.BtnC.wasClicked()) break;
+          delay(20);
+        }
+        say("");
         runDemo();
         return;
       }
