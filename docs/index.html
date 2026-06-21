@@ -5,133 +5,383 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AvaGotchi（あばごっち）インストーラー</title>
   <meta name="description" content="M5Stack Basic / Gray 用たまごっち風ゲーム AvaGotchi（あばごっち）を、ブラウザから直接書き込めます。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f1226;
-      --card: #1b1f3b;
-      --accent: #6cc6ff;
-      --accent2: #ff8ad1;
-      --text: #eef1ff;
-      --muted: #aab2d5;
+      --coral:   #FF6B6B;  --coral-bg:   #FFF0F0;
+      --mint:    #00C9A7;  --mint-bg:    #E6FFF9;
+      --sky:     #4FACFE;  --sky-bg:     #EAF5FF;
+      --amber:   #F39C12;  --amber-bg:   #FFF8E1;
+      --lavender:#A29BFE;  --lavender-bg:#F3F0FF;
+      --pink:    #FD79A8;  --pink-bg:    #FFF0F6;
+      --text: #2d3436;
+      --muted: #636e72;
+      --border: rgba(0,0,0,.07);
     }
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      margin: 0;
-      font-family: -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
-      background: radial-gradient(1200px 600px at 70% -10%, #2a2f63 0%, var(--bg) 55%);
+      font-family: "Nunito", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
       color: var(--text);
       min-height: 100vh;
+      background: #FFF8F2;
+      background-image:
+        radial-gradient(ellipse 700px 500px at 10% 0%,   #FFE8E8 0%, transparent 60%),
+        radial-gradient(ellipse 600px 400px at 90% 100%, #E0F0FF 0%, transparent 60%),
+        radial-gradient(ellipse 400px 300px at 70%  10%, #E8FFE8 0%, transparent 50%);
+      padding: 32px 16px 72px;
       display: flex;
       justify-content: center;
-      padding: 32px 16px 64px;
+      position: relative;
     }
-    .wrap { width: 100%; max-width: 720px; }
-    header { text-align: center; margin-bottom: 28px; }
-    h1 {
-      font-size: 2.4rem;
-      margin: 0 0 6px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+
+    /* Subtle dot grid */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, rgba(0,0,0,.055) 1px, transparent 1px);
+      background-size: 22px 22px;
+      pointer-events: none;
     }
-    .tagline { color: var(--muted); margin: 0; }
-    .card {
-      background: var(--card);
-      border: 1px solid rgba(255,255,255,.08);
+
+    .wrap { width: 100%; max-width: 700px; position: relative; }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 36px; padding-top: 8px; }
+
+    .face {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 76px; height: 76px;
+      background: #FDCB6E;
+      border: 3.5px solid #2d3436;
       border-radius: 18px;
-      padding: 28px;
-      margin-bottom: 20px;
-      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+      box-shadow: 4px 4px 0 #2d3436;
+      margin-bottom: 14px;
+      position: relative;
+      animation: float 2.8s ease-in-out infinite;
     }
-    .install-row { text-align: center; padding: 8px 0 4px; }
-    esp-web-install-button { --esp-tools-button-color: #0f1226; }
-    esp-web-install-button::part(button) {
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      color: #0f1226;
+    .face-eyes {
+      display: flex; gap: 14px;
+      margin-bottom: 8px;
+    }
+    .face-eye {
+      width: 9px; height: 9px;
+      background: #2d3436;
+      border-radius: 50%;
+    }
+    .face-mouth {
+      width: 26px; height: 3.5px;
+      background: #2d3436;
+      border-radius: 2px;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50%       { transform: translateY(-7px) rotate(1deg); }
+    }
+
+    h1 {
+      font-family: "DotGothic16", "Hiragino Kaku Gothic ProN", monospace;
+      font-size: 2.6rem;
+      font-weight: 400;
+      color: var(--text);
+      letter-spacing: .06em;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    .tagline {
+      color: var(--muted);
+      font-size: .95rem;
       font-weight: 700;
-      font-size: 1.1rem;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 28px 28px 24px;
+      margin-bottom: 18px;
+      border: 1.5px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04);
+      position: relative;
+      overflow: hidden;
+      animation: slideUp .5s ease both;
+    }
+    .card:nth-child(1) { animation-delay: .05s; }
+    .card:nth-child(2) { animation-delay: .10s; }
+    .card:nth-child(3) { animation-delay: .15s; }
+    .card:nth-child(4) { animation-delay: .20s; }
+    .card:nth-child(5) { animation-delay: .25s; }
+    .card:nth-child(6) { animation-delay: .30s; }
+    .card:nth-child(7) { animation-delay: .35s; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Colored top stripe */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      border-radius: 20px 20px 0 0;
+    }
+    .c-coral::before   { background: linear-gradient(90deg, var(--coral), #ff9f9f); }
+    .c-mint::before    { background: linear-gradient(90deg, var(--mint), #4de8cf); }
+    .c-sky::before     { background: linear-gradient(90deg, var(--sky), #a0d8ff); }
+    .c-lavender::before{ background: linear-gradient(90deg, var(--lavender), #c3bdff); }
+    .c-amber::before   { background: linear-gradient(90deg, var(--amber), #FDCB6E); }
+    .c-pink::before    { background: linear-gradient(90deg, var(--pink), #ffaacb); }
+    .c-red::before     { background: linear-gradient(90deg, #e17055, #fab1a0); }
+
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 900;
+      margin-bottom: 14px;
+    }
+    .c-coral   h2 { color: #c0392b; }
+    .c-mint    h2 { color: #00876e; }
+    .c-sky     h2 { color: #0984e3; }
+    .c-lavender h2 { color: #6c5ce7; }
+    .c-amber   h2 { color: #d68910; }
+    .c-pink    h2 { color: #d63874; }
+    .c-red     h2 { color: #c0392b; }
+
+    p { line-height: 1.8; }
+    ol, ul { padding-left: 1.4em; line-height: 1.95; }
+    li + li { margin-top: 3px; }
+    li b, p b { color: var(--text); }
+    .note { color: var(--muted); font-size: .9rem; line-height: 1.75; }
+    a { color: #0984e3; font-weight: 700; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    small { font-size: .82rem; }
+
+    code {
+      background: #F1F3F5;
+      color: #d63874;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: .88em;
+      font-family: "SFMono-Regular", Consolas, monospace;
+    }
+    pre {
+      background: #F8F9FA;
+      border: 1.5px solid #E9ECEF;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin: 10px 0;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .88rem;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    /* ── Concept list ── */
+    .concept-list { list-style: none; padding: 0; margin-top: 10px; }
+    .concept-list li {
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      border-radius: 10px;
+      border-left: 3px solid;
+      font-size: .9rem;
+      line-height: 1.65;
+    }
+    .concept-list li:nth-child(1) { background: var(--coral-bg);   border-color: var(--coral); }
+    .concept-list li:nth-child(2) { background: var(--mint-bg);    border-color: var(--mint); }
+    .concept-list li:nth-child(3) { background: var(--sky-bg);     border-color: var(--sky); }
+    .concept-list li:nth-child(4) { background: var(--lavender-bg);border-color: var(--lavender); }
+
+    .avatar-note {
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: var(--amber-bg);
+      border: 1.5px solid rgba(243,156,18,.25);
+      border-radius: 12px;
+      font-size: .88rem;
+      line-height: 1.65;
+    }
+
+    /* ── Hardware list ── */
+    .hw-list { list-style: none; padding: 0; }
+    .hw-list li {
+      display: flex; gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: .92rem;
+      line-height: 1.65;
+      align-items: flex-start;
+    }
+    .hw-list li:last-child { border-bottom: none; }
+    .hw-icon { font-size: 1.25rem; flex-shrink: 0; margin-top: 1px; }
+
+    .optional-box {
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: var(--mint-bg);
+      border: 1.5px solid rgba(0,201,167,.25);
+      border-radius: 12px;
+      font-size: .88rem;
+      line-height: 1.65;
+    }
+
+    /* ── Install button ── */
+    .install-row { text-align: center; padding: 16px 0 6px; }
+
+    esp-web-install-button::part(button) {
+      font-family: "Nunito", sans-serif;
+      background: linear-gradient(135deg, var(--coral), #FF8E53);
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.05rem;
       border: none;
       border-radius: 999px;
-      padding: 14px 32px;
+      padding: 15px 40px;
       cursor: pointer;
+      box-shadow: 0 4px 0 #c0392b, 0 6px 18px rgba(255,107,107,.35);
+      letter-spacing: .02em;
     }
+
     .unsupported {
-      background: #3a1422;
-      border: 1px solid #ff6b8b;
-      color: #ffd5df;
+      background: #FFF0F0;
+      border: 1.5px solid #FFB3B3;
+      color: #c0392b;
       padding: 14px 18px;
       border-radius: 12px;
       margin-top: 12px;
+      font-size: .9rem;
+      line-height: 1.65;
     }
-    h2 { font-size: 1.2rem; margin: 0 0 12px; color: var(--accent); }
-    ol, ul { margin: 0; padding-left: 1.3em; line-height: 1.9; }
-    li b { color: #fff; }
-    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
-    .controls div { background: rgba(255,255,255,.04); border-radius: 10px; padding: 10px 14px; }
-    .key { display:inline-block; min-width: 2.2em; text-align:center; font-weight:700; color: var(--accent2); }
-    .note { color: var(--muted); font-size: .9rem; line-height: 1.7; }
-    a { color: var(--accent); }
-    code { background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 5px; }
-    @media (max-width: 520px) { .controls { grid-template-columns: 1fr; } h1 { font-size: 2rem; } }
+
+    /* ── Controls grid ── */
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .controls div {
+      background: #F8F9FA;
+      border: 1.5px solid #E9ECEF;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: .88rem;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+    .key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px; height: 26px;
+      background: var(--coral);
+      color: #fff;
+      font-weight: 900;
+      border-radius: 7px;
+      font-size: .82rem;
+      margin-right: 5px;
+      box-shadow: 0 2px 0 #c0392b;
+      vertical-align: middle;
+    }
+    .key-b { background: var(--mint);    box-shadow: 0 2px 0 #00876e; }
+    .key-c { background: var(--lavender); box-shadow: 0 2px 0 #6c5ce7; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.8;
+      margin-top: 4px;
+    }
+    .footer a { color: var(--sky); }
+
+    @media (max-width: 520px) {
+      h1 { font-size: 1.9rem; }
+      .controls { grid-template-columns: 1fr; }
+      .card { padding: 22px 20px 20px; }
+    }
   </style>
-  <!-- esp-web-tools（内部で esptool-js を使用）。Web Serial 対応の Chrome / Edge が必要 -->
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 </head>
 <body>
   <div class="wrap">
+
     <header>
+      <div class="face" aria-hidden="true">
+        <div class="face-eyes">
+          <div class="face-eye"></div>
+          <div class="face-eye"></div>
+        </div>
+        <div class="face-mouth"></div>
+      </div>
       <h1>AvaGotchi（あばごっち）</h1>
       <p class="tagline">M5Stack Basic / Gray で動く、たまごっち風ペット育成ゲーム</p>
     </header>
 
-    <div class="card">
-      <h2>AvaGotchi（あばごっち）ってなに？</h2>
-      <p style="line-height:1.8; margin-bottom:16px;">
+    <!-- ① ってなに -->
+    <div class="card c-coral">
+      <h2>🤔 AvaGotchi（あばごっち）ってなに？</h2>
+      <p style="margin-bottom:16px;">
         手のひらサイズのコンピューター「M5Stack」で動く、たまごっち風のペット育成ゲームです。
         ごはんをあげたり、ミニゲームで遊んだり、お世話をしながら自分だけのペットを育てましょう。
         ペットの見た目や性格はデバイスごとにちがっていて、QRコードで「じまんカード」を出して友だちに自慢したり、SNSでシェアしたりできます。
       </p>
-      <p style="line-height:1.8; margin-bottom:10px;">
-        <b>「Ava（アバ）」という名前について</b>
-      </p>
+      <p style="font-weight:800; font-size:.95rem; margin-bottom:10px;">「Ava（アバ）」という名前について</p>
       <p class="note" style="margin-bottom:12px;">
         「Avatar（アバター）」とは、ゲームやSNSで自分の代わりに使うキャラクターのこと。
         あばごっちのペットも、あなたのお世話しだいで喜んだり悲しんだりする"あなただけの相棒"です。「Ava」にはそんな思いが込められています。
       </p>
       <p class="note" style="margin-bottom:6px;">さらに「Ava」は、こんな言葉の頭文字でもあります：</p>
-      <ul class="note" style="margin-bottom:0;">
+      <ul class="concept-list">
         <li><b>Avant-garde（アヴァンギャルド）</b>：これまでのゲームにはなかった、新しい形の仲間</li>
         <li><b>Available（アベイラブル）</b>：時間も場所も選ばず、いつでもそばにいてくれる</li>
         <li><b>Avail（アベイル）</b>：あなたの毎日にちょっとの楽しさと癒しをプラスする</li>
         <li><b>Avaricious（アヴェアリシャス）</b>：あなたとの体験やつながりを、もっともっとほしがっている</li>
       </ul>
+      <div class="avatar-note">
+        🎭 ペットの豊かな表情（喜び・悲しみ・眠り…）は、
+        <a href="https://github.com/stack-chan/m5stack-avatar" target="_blank" rel="noopener">M5Stack-Avatar</a>
+        ライブラリが描いています。スタックチャンコミュニティが育てたこのライブラリへのリスペクトも、「Ava」の名前に込められています。
+      </div>
     </div>
 
-    <div class="card">
-      <h2>必要なもの</h2>
-      <ul class="note">
-        <li><b>M5Stack Basic または Gray</b>（どちらでも動きます。Grayは傾きセンサーを使ったゲームも追加されます）</li>
-        <li><b>USB-C ケーブル</b>（データ転送対応のもの。充電専用ケーブルは不可）</li>
-        <li><b>パソコン</b>に <b>Google Chrome または Microsoft Edge</b>（スマホ・Safari・Firefoxは非対応）</li>
+    <!-- ② 必要なもの -->
+    <div class="card c-mint">
+      <h2>📦 必要なもの</h2>
+      <ul class="hw-list">
+        <li>
+          <span class="hw-icon">🖥️</span>
+          <span><b>M5Stack Basic または Gray</b>（どちらでも動きます。Grayは傾きセンサーを使ったゲームも追加されます）</span>
+        </li>
+        <li>
+          <span class="hw-icon">🔌</span>
+          <span><b>USB-C ケーブル</b>（データ転送対応のもの。充電専用ケーブルは不可）</span>
+        </li>
+        <li>
+          <span class="hw-icon">💻</span>
+          <span><b>パソコン</b>に <b>Google Chrome または Microsoft Edge</b>（スマホ・Safari・Firefox は非対応）</span>
+        </li>
       </ul>
       <p class="note" style="margin-top:12px;">
         M5Stack は <a href="https://www.switch-science.com/collections/m5stack" target="_blank" rel="noopener">スイッチサイエンス</a> などで購入できます。
         パソコンとブラウザがあれば、アプリのインストールは不要です。
       </p>
-      <p class="note" style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.07);">
+      <div class="optional-box">
         🥚 <b>オプション：たまご型ケース</b><br />
-        3Dプリンターがあれば、M5Stack にぴったりのたまご型ケースを作れます。より「たまごっち」らしい見た目になります。<br />
+        3Dプリンターがあれば、M5Stack にぴったりのたまご型ケースが作れます。より「たまごっち」らしい見た目になります。<br />
         <a href="https://makerworld.com/en/models/1156514-m5tchi-egg-shaped-case-for-m5stack" target="_blank" rel="noopener">MakerWorld：M5Tchi Egg-shaped case for M5Stack →</a>
-      </p>
+      </div>
     </div>
 
-    <div class="card">
+    <!-- ③ 書き込む -->
+    <div class="card c-sky">
       <h2>① 書き込む</h2>
-      <p>M5Stack Basic / Gray を USB でつないで、下のボタンを押すだけ。アプリのインストールは不要です（機種は自動判定されます）。</p>
+      <p>M5Stack を USB でつないで、下のボタンを押すだけ。アプリのインストールは不要です（機種は自動判定されます）。</p>
       <div class="install-row">
         <esp-web-install-button manifest="manifest.json">
-          <button slot="activate">M5Stack Basic / Gray に書き込む</button>
+          <button slot="activate">✨ M5Stack Basic / Gray に書き込む</button>
           <span slot="unsupported" class="unsupported">
             このブラウザは Web Serial に対応していません。<br />
             <b>パソコンの Chrome または Edge</b> で開いてください（スマホ・Safari・Firefox は非対応）。
@@ -143,44 +393,45 @@
       </div>
       <p class="note" style="margin-top:18px;">
         ボタンを押すとシリアルポート選択画面が出ます。<b>「CP210x …（COMxx）」</b>を選んで
-        <b>Connect → Install</b> と進めてください。書き込みには1〜2分かかります。
+        <b>Connect → Install</b> と進めてください。書き込みには 1〜2 分かかります。
       </p>
       <p class="note" style="margin-top:10px;">
-        ⚠️ <b>インストールは自己責任で行ってください。</b>本ソフトウェアの書き込み・利用によって生じた
-        いかなる損害（デバイスの不具合・データ消失等）についても、作者は一切の責任を負いません。
+        ⚠️ <b>インストールは自己責任で行ってください。</b>本ソフトウェアの書き込み・利用によって生じたいかなる損害についても、作者は一切の責任を負いません。
       </p>
     </div>
 
-    <div class="card">
-      <h2>② 遊び方（操作）</h2>
+    <!-- ④ 遊び方 -->
+    <div class="card c-lavender">
+      <h2>🎮 ② 遊び方（操作）</h2>
       <div class="controls">
         <div><span class="key">A</span> ごはんをあげる</div>
-        <div><span class="key">B</span> ミニゲーム選択</div>
-        <div><span class="key">C</span> 短押し：ステータス画面</div>
-        <div><span class="key">C</span> 長押し：天気取得＋時刻合わせ</div>
-        <div>🔄 くるくる回す → 目が回る ※</div>
+        <div><span class="key key-b">B</span> ミニゲーム選択</div>
+        <div><span class="key key-c">C</span> 短押し：ステータス</div>
+        <div><span class="key key-c">C</span> 長押し：天気・時刻</div>
+        <div>🔄 くるくる → 目が回る ※</div>
         <div>👆 トンとつつく → くすぐったい ※</div>
         <div>🙃 逆さにする → びっくり ※</div>
         <div>😴 ほうっておく → おやすみ</div>
       </div>
       <p class="note" style="margin-top:16px;">
         ミニゲームは <b>B ボタンだけ</b>で遊べます（5びょうあて／反射神経／連打／ラッキー7／がまんくらべ）。
-        <b>IMU 搭載の Gray では「かたむけて エサとり」</b>も追加されます。
+        <b>IMU 搭載の Gray では「かたむけてエサとり」</b>も追加されます。
         ごきげんと満腹を高く保つと、たまごを産んで次の世代が生まれます。<br />
-        <small>※ は IMU 搭載機（Gray）のみ。Basic 無印では動作しません。</small>
+        <small>※ IMU 搭載機（Gray）のみ。Basic 無印では動作しません。</small>
       </p>
     </div>
 
-    <div class="card">
-      <h2>③ WiFi を設定する（天気・時刻機能）</h2>
+    <!-- ⑤ WiFi -->
+    <div class="card c-amber">
+      <h2>📶 ③ WiFi を設定する（天気・時刻機能）</h2>
       <p class="note" style="margin-bottom:14px;">
         天気の取得と時刻合わせには、自宅のWiFiを設定する必要があります。
-        <b>microSDカード</b>（M5Stack に差し込んで使うカード）に設定ファイルを作るだけで設定できます。
+        <b>microSDカード</b>（M5Stack に差し込んで使うカード）に設定ファイルを作るだけでOKです。
       </p>
       <ol>
-        <li>パソコンやスマホでmicroSDカードを開き、<b><code>wifi.txt</code></b> という名前のテキストファイルを作る</li>
-        <li>中身を以下の形式で保存する（1行目にSSID、2行目にパスワード）：
-          <pre style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.9rem;line-height:1.6;">自宅のWiFi名
+        <li>microSDカードを開き、<b><code>wifi.txt</code></b> という名前のテキストファイルを作る</li>
+        <li>中身を以下の形式で保存する：
+          <pre>自宅のWiFi名
 パスワード</pre>
         </li>
         <li>microSDカードを M5Stack に差し込んで電源を入れる</li>
@@ -188,43 +439,46 @@
         <li>以降は <b>C ボタン長押し</b> で天気と時刻を取得できます</li>
       </ol>
       <p class="note" style="margin-top:12px;">
-        ⚠️ WiFi パスワードはデバイス本体（NVS）に保存されます。設定後は <code>wifi_done.txt</code> をSDカードから削除しておくことをおすすめします。
+        ⚠️ WiFi パスワードはデバイス本体に保存されます。設定後は <code>wifi_done.txt</code> をSDカードから削除することをおすすめします。
       </p>
     </div>
 
-    <div class="card">
-      <h2>④ うまくいかないとき</h2>
+    <!-- ⑥ トラブル -->
+    <div class="card c-red">
+      <h2>❓ ④ うまくいかないとき</h2>
       <ul class="note">
-        <li><b>「Failed to initialize」やリセットを繰り返す</b> → 書き込みモードに入れていません。次を順に試してください：
+        <li><b>「Failed to initialize」やリセットを繰り返す</b> → 書き込みモードに入れていません：
           <ol style="margin-top:6px;">
-            <li>他のシリアル接続を<b>すべて閉じる</b>（Arduino IDE・PlatformIOモニタ・M5Burner・別タブ）</li>
-            <li>INSTALL を押し、<b>「Connecting…」表示中に本体の赤い電源ボタンを1回カチッと押す</b>（手動リセット）</li>
+            <li>他のシリアル接続を<b>すべて閉じる</b>（Arduino IDE・PlatformIO・M5Burner・別タブ）</li>
+            <li>INSTALL を押し、<b>「Connecting…」中に本体の赤い電源ボタンを1回押す</b></li>
             <li>USB ケーブルを変える／PC に直挿し（充電専用ケーブル・ハブは不可）</li>
             <li>Chrome と Edge を切り替えてみる</li>
           </ol>
         </li>
-        <li>ボタンが灰色のまま → スマホや非対応ブラウザです。PCの Chrome / Edge で開いてください。</li>
+        <li>ボタンが灰色のまま → スマホや非対応ブラウザです。PC の Chrome / Edge で開いてください。</li>
         <li>ポート一覧に出てこない → <b>CP210x USB ドライバ</b>（Silicon Labs）が必要な場合があります。</li>
-        <li>天気・時刻機能は WiFi 設定が必要です。上の「③ WiFi を設定する」の手順でSDカードから設定してください。</li>
+        <li>天気・時刻が動かない → 上の「③ WiFi を設定する」の手順でSDカードから設定してください。</li>
       </ul>
     </div>
 
-    <div class="card" style="font-size:.88rem; line-height:1.8;">
-      <h2>クレジット</h2>
+    <!-- クレジット -->
+    <div class="card c-pink">
+      <h2>💙 クレジット</h2>
       <p class="note">
         AvaGotchi のキャラクター表示には、ししかわ氏（<a href="https://github.com/meganetaaan" target="_blank" rel="noopener">@meganetaaan</a>）が作成した
         <a href="https://github.com/stack-chan/m5stack-avatar" target="_blank" rel="noopener"><b>M5Stack-Avatar</b></a> を使用しています。
         これは、手のひらサイズのかわいいロボット <b>スタックチャン（ｽﾀｯｸﾁｬﾝ）</b> の顔を描画するためのライブラリです。
-        AvaGotchi の「表情で気持ちを伝える」体験は、スタックチャン文化に大きく影響を受けています。<br />
+        AvaGotchi の「表情で気持ちを伝える」体験はスタックチャン文化に大きく影響を受けています。<br /><br />
         ライブラリ作者および <a href="https://github.com/stack-chan/m5stack-avatar" target="_blank" rel="noopener">M5Stack-Avatar</a>
         コミュニティの皆さんに、深く感謝します。
       </p>
     </div>
 
-    <p class="note" style="text-align:center;">
+    <p class="footer">
       ソースコード・詳細：<a href="https://github.com/sin1n24/AvaGotchi">github.com/sin1n24/AvaGotchi</a><br />
       © 2026 sin1 — MIT License
     </p>
+
   </div>
 </body>
 </html>
