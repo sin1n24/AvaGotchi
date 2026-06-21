@@ -163,7 +163,28 @@
     </div>
 
     <div class="card">
-      <h2>③ うまくいかないとき</h2>
+      <h2>③ WiFi を設定する（天気・時刻機能）</h2>
+      <p class="note" style="margin-bottom:14px;">
+        天気の取得と時刻合わせには、自宅のWiFiを設定する必要があります。
+        <b>microSDカード</b>（M5Stack に差し込んで使うカード）に設定ファイルを作るだけで設定できます。
+      </p>
+      <ol>
+        <li>パソコンやスマホでmicroSDカードを開き、<b><code>wifi.txt</code></b> という名前のテキストファイルを作る</li>
+        <li>中身を以下の形式で保存する（1行目にSSID、2行目にパスワード）：
+          <pre style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.9rem;line-height:1.6;">自宅のWiFi名
+パスワード</pre>
+        </li>
+        <li>microSDカードを M5Stack に差し込んで電源を入れる</li>
+        <li>設定が読み込まれると <b><code>wifi_done.txt</code></b> に自動でリネームされます</li>
+        <li>以降は <b>C ボタン長押し</b> で天気と時刻を取得できます</li>
+      </ol>
+      <p class="note" style="margin-top:12px;">
+        ⚠️ WiFi パスワードはデバイス本体（NVS）に保存されます。設定後は <code>wifi_done.txt</code> をSDカードから削除しておくことをおすすめします。
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>④ うまくいかないとき</h2>
       <ul class="note">
         <li><b>「Failed to initialize」やリセットを繰り返す</b> → 書き込みモードに入れていません。次を順に試してください：
           <ol style="margin-top:6px;">
@@ -177,6 +198,18 @@
         <li>ポート一覧に出てこない → <b>CP210x USB ドライバ</b>（Silicon Labs）が必要な場合があります。</li>
         <li>天気・時刻機能は WiFi 設定が必要です（配布版は未設定。ソースの <code>secrets.h</code> 参照）。</li>
       </ul>
+    </div>
+
+    <div class="card" style="font-size:.88rem; line-height:1.8;">
+      <h2>クレジット</h2>
+      <p class="note">
+        AvaGotchi のキャラクター表示には、ししかわ氏（<a href="https://github.com/meganetaaan" target="_blank" rel="noopener">@meganetaaan</a>）が作成した
+        <a href="https://github.com/stack-chan/m5stack-avatar" target="_blank" rel="noopener"><b>M5Stack-Avatar</b></a> を使用しています。
+        これは、手のひらサイズのかわいいロボット <b>スタックチャン（ｽﾀｯｸﾁｬﾝ）</b> の顔を描画するためのライブラリです。
+        AvaGotchi の「表情で気持ちを伝える」体験は、スタックチャン文化に大きく影響を受けています。<br />
+        ライブラリ作者および <a href="https://github.com/stack-chan/m5stack-avatar" target="_blank" rel="noopener">M5Stack-Avatar</a>
+        コミュニティの皆さんに、深く感謝します。
+      </p>
     </div>
 
     <p class="note" style="text-align:center;">

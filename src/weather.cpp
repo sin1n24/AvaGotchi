@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <Preferences.h>
 #include <time.h>
 #include "config.h"
 
@@ -43,8 +44,17 @@ namespace Weather {
 
 bool fetch(WeatherInfo &out) {
   out.valid = false;
+
+  // NVSに保存済みの認証情報を優先。なければ secrets.h のマクロにフォールバック。
+  Preferences wprefs;
+  wprefs.begin("wificfg", true);
+  String ssid = wprefs.getString("ssid", WIFI_SSID);
+  String wpass = wprefs.getString("pass", WIFI_PASS);
+  wprefs.end();
+  if (ssid.isEmpty() || ssid == "your-ssid") return false;
+
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFi.begin(ssid.c_str(), wpass.c_str());
   uint32_t t0 = millis();
   while (WiFi.status() != WL_CONNECTED) {
     if (millis() - t0 > 15000) {  // 15秒で接続を諦める

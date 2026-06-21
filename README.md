@@ -1,6 +1,6 @@
 # AvaGotchi（あばごっち）
 
-M5Stack **Basic / Gray** で動く、たまごっち風ペット育成ゲームです。キャラクターは [M5Stack-Avatar](https://github.com/meganetaaan/m5stack-avatar) で描画され、状況に合わせて表情が変わります。1つのファームが両機種に対応し、IMU の有無（Gray=有 / Basic無印=無）を起動時に自動判定して機能を切り替えます。
+M5Stack **Basic / Gray** で動く、たまごっち風ペット育成ゲームです。キャラクターは [M5Stack-Avatar](https://github.com/stack-chan/m5stack-avatar) で描画され、状況に合わせて表情が変わります。1つのファームが両機種に対応し、IMU の有無（Gray=有 / Basic無印=無）を起動時に自動判定して機能を切り替えます。
 
 ## 名前の由来
 
@@ -149,12 +149,12 @@ int Pet::expForNext() const {
 
 ## スタックチャンについて / クレジット
 
-AvaGotchi のキャラクター表示には、ししかわ氏（[@meganetaaan](https://github.com/meganetaaan)）が作成した **[M5Stack-Avatar](https://github.com/meganetaaan/m5stack-avatar)** を使用しています。これは、M5Stack をベースにした自作コミュニケーションロボット **スタックチャン（ｽﾀｯｸﾁｬﾝ / stack-chan）** の「顔」を描画するためのライブラリです。
+AvaGotchi のキャラクター表示には、ししかわ氏（[@meganetaaan](https://github.com/meganetaaan)）が作成した **[M5Stack-Avatar](https://github.com/stack-chan/m5stack-avatar)** を使用しています。これは、M5Stack をベースにした自作コミュニケーションロボット **スタックチャン（ｽﾀｯｸﾁｬﾝ / stack-chan）** の「顔」を描画するためのライブラリです。
 
 **スタックチャン** は、ししかわ氏とコミュニティによって開発されている、M5Stack ベースのオープンソースな自作ロボットです。手のひらサイズのかわいい見た目と、ゆたかな表情・しぐさが特徴で、世界中に多くのファンと派生作品・コミュニティを生んでいます。AvaGotchi の「表情で気持ちを伝える」体験は、このスタックチャン文化に大きく影響を受けています。
 
-- 本家リポジトリ: <https://github.com/meganetaaan/stack-chan>
-- 作者: ししかわ（Shunya Ishikawa）
+- M5Stack-Avatar リポジトリ: <https://github.com/stack-chan/m5stack-avatar>
+- 作者: ししかわ（Shunya Ishikawa）[@meganetaaan](https://github.com/meganetaaan)
 - ライセンス: Apache License 2.0
 - 公式ハッシュタグ: `#stackchan` `#ｽﾀｯｸﾁｬﾝ`
 

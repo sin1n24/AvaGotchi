@@ -3,6 +3,8 @@
 //   ボタンA: ごはん  ボタンB: ミニゲーム  ボタンC: ステータス  C長押し: 天気更新
 #include <M5Unified.h>
 #include <Avatar.h>
+#include <SD.h>
+#include <Preferences.h>
 #include <time.h>
 #include <sys/time.h>
 #include "config.h"
@@ -482,6 +484,27 @@ void setup() {
       struct timeval tv = {tt, 0};
       settimeofday(&tv, nullptr);
     }
+  }
+
+  // SDカードに wifi.txt があればWiFi認証情報を読み込んでNVSに保存
+  // フォーマット: 1行目=SSID、2行目=パスワード
+  if (SD.begin(4)) {
+    if (SD.exists("/wifi.txt")) {
+      File f = SD.open("/wifi.txt");
+      String ssid = f.readStringUntil('\n');
+      String wpass = f.readStringUntil('\n');
+      f.close();
+      ssid.trim(); wpass.trim();
+      if (ssid.length() > 0) {
+        Preferences wprefs;
+        wprefs.begin("wificfg", false);
+        wprefs.putString("ssid", ssid);
+        wprefs.putString("pass", wpass);
+        wprefs.end();
+        SD.rename("/wifi.txt", "/wifi_done.txt");
+      }
+    }
+    SD.end();
   }
 
   pet.load();
