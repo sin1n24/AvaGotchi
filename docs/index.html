@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AvaGotchi インストーラー</title>
-  <meta name="description" content="M5Stack Gray 用たまごっち風ゲーム AvaGotchi を、ブラウザから直接書き込めます。" />
+  <title>AvaGotchi（あばごっち）インストーラー</title>
+  <meta name="description" content="M5Stack Basic / Gray 用たまごっち風ゲーム AvaGotchi（あばごっち）を、ブラウザから直接書き込めます。" />
   <style>
     :root {
       --bg: #0f1226;
@@ -81,26 +81,30 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>AvaGotchi</h1>
+      <h1>AvaGotchi（あばごっち）</h1>
       <p class="tagline">M5Stack Basic / Gray で動く、たまごっち風ペット育成ゲーム</p>
     </header>
 
     <div class="card">
-      <h2>AvaGotchi ってなに？</h2>
-      <p style="line-height:1.8; margin-bottom:14px;">
-        <b>AvaGotchi</b> は、手のひらサイズのコンピューター「M5Stack」で動く、たまごっち風のペット育成ゲームです。
-        ごはんをあげたり、ミニゲームで遊んだり、お世話をしながらペットを育てましょう。
-        育てた子の個性はデバイスごとに異なり、QRコードで「じまんカード」を表示してシェアできます。
+      <h2>AvaGotchi（あばごっち）ってなに？</h2>
+      <p style="line-height:1.8; margin-bottom:16px;">
+        手のひらサイズのコンピューター「M5Stack」で動く、たまごっち風のペット育成ゲームです。
+        ごはんをあげたり、ミニゲームで遊んだり、お世話をしながら自分だけのペットを育てましょう。
+        ペットの見た目や性格はデバイスごとにちがっていて、QRコードで「じまんカード」を出して友だちに自慢したり、SNSでシェアしたりできます。
       </p>
-      <p style="line-height:1.8; margin-bottom:8px;">
-        名前の <b>「Ava」</b> にはいくつかの意味が込められています：
+      <p style="line-height:1.8; margin-bottom:10px;">
+        <b>「Ava（アバ）」という名前について</b>
       </p>
+      <p class="note" style="margin-bottom:12px;">
+        「Avatar（アバター）」とは、ゲームやSNSで自分の代わりに使うキャラクターのこと。
+        あばごっちのペットも、あなたのお世話しだいで喜んだり悲しんだりする"あなただけの相棒"です。「Ava」にはそんな思いが込められています。
+      </p>
+      <p class="note" style="margin-bottom:6px;">さらに「Ava」は、こんな言葉の頭文字でもあります：</p>
       <ul class="note" style="margin-bottom:0;">
-        <li><b>Avatar</b>：人の分身として、遠隔でも"自分"として振る舞える存在</li>
-        <li><b>Avant-garde</b>：従来のロボット観を超えた、前衛的な存在</li>
-        <li><b>Available</b>：場所や身体の制約を超えて、いつでもどこでも"利用可能"</li>
-        <li><b>Avail</b>：人の可能性を最大限に活かし、社会参加に役立つ</li>
-        <li><b>Avaricious（再解釈）</b>：より多くの体験・つながりを貪欲に求める人間性を象徴</li>
+        <li><b>Avant-garde（アヴァンギャルド）</b>：これまでのゲームにはなかった、新しい形の仲間</li>
+        <li><b>Available（アベイラブル）</b>：時間も場所も選ばず、いつでもそばにいてくれる</li>
+        <li><b>Avail（アベイル）</b>：あなたの毎日にちょっとの楽しさと癒しをプラスする</li>
+        <li><b>Avaricious（アヴェアリシャス）</b>：あなたとの体験やつながりを、もっともっとほしがっている</li>
       </ul>
     </div>
 
@@ -114,6 +118,11 @@
       <p class="note" style="margin-top:12px;">
         M5Stack は <a href="https://www.switch-science.com/collections/m5stack" target="_blank" rel="noopener">スイッチサイエンス</a> などで購入できます。
         パソコンとブラウザがあれば、アプリのインストールは不要です。
+      </p>
+      <p class="note" style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.07);">
+        🥚 <b>オプション：たまご型ケース</b><br />
+        3Dプリンターがあれば、M5Stack にぴったりのたまご型ケースを作れます。より「たまごっち」らしい見た目になります。<br />
+        <a href="https://makerworld.com/en/models/1156514-m5tchi-egg-shaped-case-for-m5stack" target="_blank" rel="noopener">MakerWorld：M5Tchi Egg-shaped case for M5Stack →</a>
       </p>
     </div>
 
@@ -196,7 +205,7 @@
         </li>
         <li>ボタンが灰色のまま → スマホや非対応ブラウザです。PCの Chrome / Edge で開いてください。</li>
         <li>ポート一覧に出てこない → <b>CP210x USB ドライバ</b>（Silicon Labs）が必要な場合があります。</li>
-        <li>天気・時刻機能は WiFi 設定が必要です（配布版は未設定。ソースの <code>secrets.h</code> 参照）。</li>
+        <li>天気・時刻機能は WiFi 設定が必要です。上の「③ WiFi を設定する」の手順でSDカードから設定してください。</li>
       </ul>
     </div>
 
